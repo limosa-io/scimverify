@@ -26,15 +26,25 @@ function verifyUser(user, schema, schemaExtensions = []) {
             `User contains attribute not defined in schema: ${attr}`
         );
     });
+}
 
-
+function createUserBody(user, schema, schemaExtensions){
+    // find all required attributes
 
 }
+
 
 function runTests(schema, schemaExtensions = []) {
     test.describe('/Users', () => {
 
-        test('Retrieve users', async () => {
+        // before all, ensure schema is set
+        test.beforeEach(() => {
+            if (!schema) {
+                test.skip('Schema is not set');
+            }
+        });
+
+        test('Retrieves a list of users', async () => {
             const response = await axios.get(`${baseURL}/Users`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
@@ -46,7 +56,7 @@ function runTests(schema, schemaExtensions = []) {
             });
         });
 
-        test('Retrieve single user', async () => {
+        test('Retrieves a single user', async () => {
             if (!sharedState.users || sharedState.users.length === 0) {
                 test.skip('Previous test failed or no users found in shared state');
                 return;
@@ -56,6 +66,7 @@ function runTests(schema, schemaExtensions = []) {
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
             assert.strictEqual(response.data.id, firstUser.id);
+            verifyUser(response.data, schema, schemaExtensions);
             assert.ok(
                 response.headers['content-type'] === 'application/scim+json' ||
                 response.headers['content-type'] === 'application/json',
@@ -63,7 +74,7 @@ function runTests(schema, schemaExtensions = []) {
             );
         });
 
-        test('Retrieve non existing user', async () => {
+        test('Handles retrieval of a non-existing user', async () => {
             try {
                 await axios.get(`${baseURL}/Users/9876543210123456`);
                 assert.fail('Expected error not thrown');
@@ -73,7 +84,7 @@ function runTests(schema, schemaExtensions = []) {
             }
         });
 
-        test('Paginate with startIndex', async () => {
+        test('Paginates users using startIndex', async () => {
             const startIndex = 20;
             const count = 5;
             const response = await axios.get(`${baseURL}/Users?startIndex=${startIndex}&count=${count}`);
@@ -83,7 +94,7 @@ function runTests(schema, schemaExtensions = []) {
             assert.strictEqual(response.data.startIndex, startIndex, 'startIndex should match the requested startIndex');
         });
 
-        test('Sort users by userName', async () => {
+        test('Sorts users by userName', async () => {
             const response = await axios.get(`${baseURL}/Users?sortBy=userName`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
@@ -93,7 +104,7 @@ function runTests(schema, schemaExtensions = []) {
             }
         });
 
-        test('Retrieve only userName attributes', async () => {
+        test('Retrieves only userName attributes', async () => {
             const attributes = 'userName';
             const response = await axios.get(`${baseURL}/Users?attributes=${attributes}`);
             assert.strictEqual(response.status, 200);
@@ -104,7 +115,8 @@ function runTests(schema, schemaExtensions = []) {
             });
         });
 
-        test('Create a new user', async () => {
+        test('Creates a new user - Alternative 1', async () => {
+            // find required attributes from the schema
             const newUser = {
                 schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
                 userName: `testuser${Math.floor(Math.random() * 10000)}`,
@@ -118,13 +130,43 @@ function runTests(schema, schemaExtensions = []) {
             const response = await axios.post(`${baseURL}/Users`, newUser);
             assert.strictEqual(response.status, 201);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
-            assert.strictEqual(response.data.userName, newUser.userName);
+            assert.strictEqual(
+                response.data.userName || response.data['urn:ietf:params:scim:schemas:core:2.0:User'].userName,
+                newUser.userName
+            );
 
             // Store the created user in shared state for further tests
             sharedState.createdUser = response.data;
         });
 
-        test('Update user with PUT', async () => {
+        test('Creates a new user - Alternative 2', async () => {
+            // find required attributes from the schema
+            const userName = `testuser${Math.floor(Math.random() * 10000)}`;
+            const newUser = {
+                schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+                'urn:ietf:params:scim:schemas:core:2.0:User': {
+                    userName: userName,
+                    emails: [
+                        {
+                            value: 'barbara.jensen@example.com'
+                        }
+                    ]
+                }
+            };
+
+            const response = await axios.post(`${baseURL}/Users`, newUser);
+            assert.strictEqual(response.status, 201);
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
+            assert.strictEqual(
+                response.data.userName || response.data['urn:ietf:params:scim:schemas:core:2.0:User'].userName,
+                userName
+            );
+            // Store the created user in shared state for further tests
+            sharedState.createdUser = response.data;
+        });
+
+        test('Updates a user using PUT', async () => {
+            // TODO: get user from retrieved users, do not use created user
             if (!sharedState.createdUser) {
                 test.skip('Previous test failed or no user created in shared state');
                 return;
@@ -145,7 +187,9 @@ function runTests(schema, schemaExtensions = []) {
             sharedState.updatedUser = updateResponse.data;
         });
 
-        test('Update user with PATCH', async () => {
+        test('Updates a user using PATCH', async () => {
+            // TODO: get user from retrieved users, do not use created user
+            // TODO: test other operations
             if (!sharedState.updatedUser) {
                 test.skip('Previous test failed or no user updated in shared state');
                 return;
@@ -171,7 +215,7 @@ function runTests(schema, schemaExtensions = []) {
             sharedState.patchedUser = patchResponse.data;
         });
 
-        test('Delete user', async () => {
+        test('Deletes a user', async () => {
             if (!sharedState.patchedUser) {
                 test.skip('Previous test failed or no user patched in shared state');
                 return;

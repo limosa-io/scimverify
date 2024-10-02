@@ -18,7 +18,7 @@ axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 function runTests() {
     test.describe('/Groups', () => {
         // TODO: Retrieve all groups, ensure that for creating a new group an unique name is used...
-        test('Retrieve groups', async (t) => {
+        test('Retrieves a list of groups', async (t) => {
             const response = await axios.get(`${baseURL}/Groups`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
@@ -28,7 +28,7 @@ function runTests() {
             sharedState.groups = response.data.Resources;
         });
 
-        test('Retrieve single group', async () => {
+        test('Retrieves a single group', async () => {
             if (!sharedState.groups || sharedState.groups.length === 0) {
                 test.skip('Previous test failed or no groups found in shared state');
                 return;
@@ -39,13 +39,13 @@ function runTests() {
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group');
             assert.strictEqual(response.data.id, firstGroup.id);
             assert.ok(
-                response.headers['content-type'] === 'application/scim+json' || 
+                response.headers['content-type'] === 'application/scim+json' ||
                 response.headers['content-type'] === 'application/json',
                 'Content-Type should be either application/scim+json or application/json'
             );
         });
 
-        test('Retrieve non existing group', async () => {
+        test('Handles retrieval of a non-existing group', async () => {
             try {
                 await axios.get(`${baseURL}/Groups/9876543210123456`);
                 assert.fail('Expected error not thrown');
@@ -55,26 +55,41 @@ function runTests() {
             }
         });
 
-        for (let i = 0; i < 5; i++) {
-            test('Create a new group ' + i, async () => {
-                const newGroup = {
-                    schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
-                    displayName: `Test Group ${Math.floor(Math.random() * 10000)}`
-                };
-        
-                const response = await axios.post(`${baseURL}/Groups`, newGroup);
-                assert.strictEqual(response.status, 201);
-                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group');
-                assert.strictEqual(response.data.displayName, newGroup.displayName);
-        
-                // Store the created group in shared state for further tests
-                sharedState.createdGroup = response.data;
-            });
-        }
-            
-        
+        test('Creates a new group - Alternative 1', async () => {
+            const newGroup = {
+                schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+                displayName: `Test Group ${Math.floor(Math.random() * 10000)}`
+            };
 
-        test('Create an incorrect group, expect errors', async () => {
+            const response = await axios.post(`${baseURL}/Groups`, newGroup);
+            assert.strictEqual(response.status, 201);
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group');
+            assert.strictEqual(response.data.displayName, newGroup.displayName);
+
+            // Store the created group in shared state for further tests
+            sharedState.createdGroup = response.data;
+        });
+
+        test('Creates a new group - Alternative 2', async () => {
+
+            const groupName = `Test Group ${Math.floor(Math.random() * 10000)}`;
+            const newGroup = {
+                schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+                'urn:ietf:params:scim:schemas:core:2.0:Group': {
+                    displayName: groupName
+                }
+            };
+
+            const response = await axios.post(`${baseURL}/Groups`, newGroup);
+            assert.strictEqual(response.status, 201);
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group');
+            assert.strictEqual(response.data.displayName, groupName);
+
+            // Store the created group in shared state for further tests
+            sharedState.createdGroup = response.data;
+        });
+
+        test('Returns errors when creating an invalid group', async () => {
             const newGroup = {
                 schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
             };
@@ -90,7 +105,7 @@ function runTests() {
             }
         });
 
-        test('Assign user to group', async () => {
+        test('Assigns a user to a group', async () => {
             // Retrieve a user
             const userResponse = await axios.get(`${baseURL}/Users`);
             assert.strictEqual(userResponse.status, 200);

@@ -6,7 +6,7 @@ const axios = require('axios');
 function runTests() {
     test.describe('/Schemas', function () {
         // ensure base url is reachable with axios, any return status code is valid
-        test('Test if is reachable', async function () {
+        test('/Schemas endpoint should be reachable', async function () {
             const baseUrl = config.baseURL;
             try {
                 await axios.get(`${baseUrl}/Schemas`);
@@ -17,7 +17,7 @@ function runTests() {
             }
         });
 
-        test('Must return list of schemas', async function () {
+        test('Should return a list of schemas', async function () {
             const response = await axios.get(`${config.baseURL}/Schemas`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
@@ -28,7 +28,7 @@ function runTests() {
             });
         });
 
-        test('Each returned schema should be a valid schema', async function () {
+        test('Every schema in the list should be valid', async function () {
             const response = await axios.get(`${config.baseURL}/Schemas`);
             const resourceTypes = response.data.Resources;
             resourceTypes.forEach(resourceType => {
@@ -42,7 +42,7 @@ function runTests() {
             });
         });
 
-        test('Retrieve single schema', async function () {
+        test('Should be able to retrieve a single schema', async function () {
             const response = await axios.get(`${config.baseURL}/Schemas/urn:ietf:params:scim:schemas:core:2.0:User`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Schema');

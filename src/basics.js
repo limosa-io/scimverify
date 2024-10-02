@@ -5,14 +5,14 @@ const axios = require('axios');
 
 function runTests() {
     test.describe('SCIM Base URL Tests', function() {
-        test('should not contain a query parameter', function() {
+        test('Base URL should not contain any query parameters', function() {
             const baseUrl = config.baseURL;
             const url = new URL(baseUrl);
             assert.strictEqual(url.search, '', 'Base URL contains query parameters');
         });
 
         // ensure base url is reachable with axios, any return status code is valid
-        test('should be reachable', async function() {
+        test('Base URL should be reachable', async function() {
             const baseUrl = config.baseURL;
             try {
                 await axios.get(baseUrl);
@@ -23,7 +23,7 @@ function runTests() {
             }
         });
 
-        test('should require authentication for /Users', async function() {
+        test('Authentication should be required for /Users', async function() {
             const usersUrl = `${config.baseURL}/Users`;
             try {
                 await axios.get(usersUrl);

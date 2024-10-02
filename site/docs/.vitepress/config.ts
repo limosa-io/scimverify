@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.vuejs.org/config/app-configs
 export default defineConfig({
-    title: 'scim.dev verify',
+    title: 'SCIM Verify',
     themeConfig: {
         nav: [
             { text: 'Home', link: '/' },
@@ -10,5 +10,8 @@ export default defineConfig({
         ],
             
        
+    },
+    markdown: {
+        
     }
 })

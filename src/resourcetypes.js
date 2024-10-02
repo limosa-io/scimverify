@@ -7,7 +7,7 @@ function runTests() {
     test.describe('/ResourceTypes', function () {
 
         // ensure base url is reachable with axios, any return status code is valid
-        test('Test if is reachable', async function () {
+        test('/ResourceTypes endpoint should be reachable', async function () {
             const baseUrl = config.baseURL;
             try {
                 await axios.get(`${baseUrl}/ResourceTypes`);
@@ -18,7 +18,7 @@ function runTests() {
             }
         });
 
-        test('Must return list of resource types', async function () {
+        test('Should return a list of resource types', async function () {
             const response = await axios.get(`${config.baseURL}/ResourceTypes`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
@@ -29,7 +29,7 @@ function runTests() {
             });
         });
 
-        test('Each returned resource should be a valid resource type', async function () {
+        test('Every resource in the list should be a valid resource type', async function () {
             const response = await axios.get(`${config.baseURL}/ResourceTypes`);
             const resourceTypes = response.data.Resources;
             resourceTypes.forEach(resourceType => {
@@ -43,7 +43,7 @@ function runTests() {
             });
         });
 
-        test('Retrieve single resource type', async function () {
+        test('Should be able to retrieve a single resource type', async function () {
             const response = await axios.get(`${config.baseURL}/ResourceTypes/User`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:ResourceType');
