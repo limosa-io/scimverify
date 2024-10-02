@@ -6,10 +6,8 @@ export default defineConfig({
     themeConfig: {
         nav: [
             { text: 'Home', link: '/' },
-            { text: 'SCIM Playground', link: 'https://scim.dev' }
+            { text: 'SCIM Playground', link: 'https://scim.dev', target: '_blank', rel: 'noopener' }
         ],
-            
-       
     },
     markdown: {
         
