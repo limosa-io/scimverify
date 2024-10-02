@@ -1,5 +1,5 @@
 # Use the official Node.js image from the Docker Hub
-FROM node:alpine
+FROM node:21-alpine
 
 # Create and change to the app directory
 WORKDIR /usr/src/app
@@ -14,4 +14,4 @@ RUN npm install
 COPY . .
 
 # Run the tests
-CMD ["node", "--test"]
+CMD ["node", "--test", "--test-reporter", "spec"]
