@@ -1,6 +1,6 @@
 # SCIM Verify
 
-We all want to use and build SCIM-compliant servers—yes, even you! But how can we ensure these servers follow the specifications correctly? That's where SCIM Verify comes in. SCIM Verify is a CLI tool that checks whether a SCIM server complies with the specifications and reports on what is and isn’t implemented.
+We all want to use or build SCIM-compliant servers. Yes, even you! But how can we ensure these servers follow the specifications correctly? That's where SCIM Verify comes in. SCIM Verify is a CLI tool that checks whether a SCIM server complies with the specifications and reports on what is and isn’t implemented.
 
 # How to use
 
