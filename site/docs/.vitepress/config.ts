@@ -12,7 +12,7 @@ export default defineConfig({
     head: [
         [
             'meta',
-            { property: 'og:image', content: '/scim-ogimage.png' }
+            { property: 'og:image', content: '/scimverify-ogimage.png' }
 
         ],
         [
