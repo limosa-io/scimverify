@@ -28,7 +28,18 @@ To ensure all tests pass, it is essential to have valid `schemas` and `resourcet
 
 ## Options
 
-You may provide the following command line options.
+SCIM Verify is built on top of the Node Test Runner. This means you can use all the options provided by the test runner.
+
+### Examples
+
+~~~
+--test --test-reporter spec # Use a different output reporter
+--test --test-skip-pattern Groups # Do not test groups
+--test --test-name-pattern Users # Only test users
+
+# Complete example:
+docker run --env-file .env ghcr.io/limosa-io/scimverify:latest --test --test-reporter spec --test-name-pattern Users
+~~~
 
 ## Example output
 
@@ -85,8 +96,19 @@ You may provide the following command line options.
 ℹ duration_ms 2321.382925
 ~~~
 
+## Roadmap
+
+1. Allow testing SCIM servers that do not provide the endpoint `/Schemas` and/or `/ResourceTypes`. 
+2. Allow specifying the schemas manually
+3. Support multiple authentication mechanisms
+4. More to come ...
+
 ## SCIM Playground
 
-<span class="font-scim">SCIM</span> Verify is brought to you by the makes of <span class="font-scim">SCIM</span> Playground.
+<span class="font-scim">SCIM</span> Verify is brought to you by the makers of <span class="font-scim">SCIM</span> Playground.
 
-<span class="font-scim">SCIM</span> Verify is designed to test any SCIM server, including <span class="font-scim">SCIM</span> Playground from scim.dev. You may want to use SCIM Playground for testing.
+<span class="font-scim">SCIM</span> Verify is designed to test any SCIM server, including <span class="font-scim">SCIM</span> Playground from scim.dev. SCIM Playground is a tool that allows developers to simulate and test SCIM (System for Cross-domain Identity Management) servers. You may want to use SCIM Playground for testing.
+
+## Contact
+
+For questions and support, reach out to [scim@a11n.nl](mailto:scim@a11n.nl).
