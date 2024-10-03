@@ -1,9 +1,12 @@
-# SCIM Verify
+# <span class="font-scim">SCIM</span> Verify
 
-We all want to use or build SCIM-compliant servers. Yes, even you! But how can we ensure these servers follow the specifications correctly? That's where SCIM Verify comes in. SCIM Verify is a CLI tool that acts as a SCIM client and checks whether a SCIM server complies with the specifications and reports on what is and isn’t implemented.
+Ensure your SCIM servers adhere to specifications with SCIM Verify! This CLI tool acts as a SCIM client and tests your SCIM server for compliance. It supports discovering what’s implemented correctly and identify areas that need improvement.  
+Take action now and use SCIM Verify to guarantee your server meets the standards!
 
 ::: warning Alpha Release
-This is an **alpha version** of the software, and it is provided **as-is**. It <strike>may</strike> contain bugs, incomplete features, or other issues that could affect its stability and functionality. Use at your own risk. No warranties, express or implied, are provided.
+This is an **alpha version** of the software, and it is provided **as-is**. It contain bugs, incomplete features, or other issues that affect its stability and functionality. Use at your own risk. No warranties, express or implied, are provided.
+
+If you can't wait for a final release, reach out for commercial support via [scim@a11n.nl](mailto:scim@a11n.nl)
 :::
 
 ## How to use
@@ -16,12 +19,16 @@ docker run --env-file .env ghcr.io/limosa-io/scimverify:latest
 
 Make sure to create the `.env` file and populate it like this:
 
-~~~
+~~~.env
 BASE_URL=https://api.scim.dev/scim/v2
 TOKEN=5yeXzWOBW2gHEJQTFC6DMyAImscoE67854DSurSrFKzH1MdhlYNeayXAyrmi
 ~~~
 
 To ensure all tests pass, it is essential to have valid `schemas` and `resourcetypes` endpoints.
+
+## Options
+
+You may provide the following command line options.
 
 ## Example output
 
@@ -80,4 +87,6 @@ To ensure all tests pass, it is essential to have valid `schemas` and `resourcet
 
 ## SCIM Playground
 
-SCIM Verify is designed to test any SCIM server, including SCIM Playground from scim.dev. You may want to use SCIM Playground for testing.
+<span class="font-scim">SCIM</span> Verify is brought to you by the makes of <span class="font-scim">SCIM</span> Playground.
+
+<span class="font-scim">SCIM</span> Verify is designed to test any SCIM server, including <span class="font-scim">SCIM</span> Playground from scim.dev. You may want to use SCIM Playground for testing.
