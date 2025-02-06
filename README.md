@@ -1,4 +1,6 @@
-# SCIM Conformance Tool
+# SCIM Verify
+
+![SCIM Verify](site/docs/public/scimverify-ogimage.png)
 
 This tool is designed to check the SCIM (System for Cross-domain Identity Management) conformance of your SCIM server.
 
