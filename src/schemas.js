@@ -48,6 +48,18 @@ function runTests() {
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Schema');
             assert.strictEqual(response.data.name, 'User');
         });
+
+
+        test('Group schema should have displayName as a required attribute if it exists', async function () {
+            const response = await axios.get(`${config.baseURL}/Schemas`);
+            const resourceTypes = response.data.Resources;
+            const groupSchema = resourceTypes.find(resourceType => resourceType.id === 'urn:ietf:params:scim:schemas:core:2.0:Group');
+            if (groupSchema) {
+                const displayNameAttribute = groupSchema.attributes.find(attr => attr.name === 'displayName');
+                assert.ok(displayNameAttribute, 'displayName attribute is missing');
+                assert.strictEqual(displayNameAttribute.required, true, 'displayName attribute should be marked as required');
+            }
+        });
     });
 }
 

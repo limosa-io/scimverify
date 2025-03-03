@@ -1,18 +1,9 @@
 const test = require('node:test');
 var assert = require('node:assert');
-const axios = require('axios');
+const { getAxiosInstance } = require('./helpers');
 require('dotenv').config();
 
 const sharedState = {};
-
-const baseURL = process.env.BASE_URL;
-const token = process.env.TOKEN;
-
-if (!baseURL || !token) {
-    throw new Error('BASE_URL and TOKEN must be set in the environment variables');
-}
-
-axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
 function verifyUser(user, schema, schemaExtensions = []) {
     // Ensure the user contains no other attributes then defined in the schema. Note that attributes of the default schema may be at the root level or at the schema level
@@ -34,7 +25,9 @@ function createUserBody(user, schema, schemaExtensions){
 }
 
 
-function runTests(schema, schemaExtensions = []) {
+function runTests(schema, schemaExtensions = [], configuration) {
+    const axios = getAxiosInstance();
+
     test.describe('/Users', () => {
 
         // before all, ensure schema is set
@@ -45,7 +38,7 @@ function runTests(schema, schemaExtensions = []) {
         });
 
         test('Retrieves a list of users', async () => {
-            const response = await axios.get(`${baseURL}/Users`);
+            const response = await axios.get('/Users');
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
             sharedState.users = response.data.Resources;
@@ -62,7 +55,7 @@ function runTests(schema, schemaExtensions = []) {
                 return;
             }
             const firstUser = sharedState.users[0];
-            const response = await axios.get(`${baseURL}/Users/${firstUser.id}`);
+            const response = await axios.get(`/Users/${firstUser.id}`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
             assert.strictEqual(response.data.id, firstUser.id);
@@ -76,7 +69,7 @@ function runTests(schema, schemaExtensions = []) {
 
         test('Handles retrieval of a non-existing user', async () => {
             try {
-                await axios.get(`${baseURL}/Users/9876543210123456`);
+                await axios.get('/Users/9876543210123456');
                 assert.fail('Expected error not thrown');
             } catch (error) {
                 assert.strictEqual(error.response.status, 404);
@@ -87,7 +80,7 @@ function runTests(schema, schemaExtensions = []) {
         test('Paginates users using startIndex', async () => {
             const startIndex = 20;
             const count = 5;
-            const response = await axios.get(`${baseURL}/Users?startIndex=${startIndex}&count=${count}`);
+            const response = await axios.get(`/Users?startIndex=${startIndex}&count=${count}`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
             assert.ok(response.data.Resources.length <= count, 'Number of resources should be less than or equal to count');
@@ -95,7 +88,7 @@ function runTests(schema, schemaExtensions = []) {
         });
 
         test('Sorts users by userName', async () => {
-            const response = await axios.get(`${baseURL}/Users?sortBy=userName`);
+            const response = await axios.get('/Users?sortBy=userName');
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
             const users = response.data.Resources;
@@ -106,7 +99,7 @@ function runTests(schema, schemaExtensions = []) {
 
         test('Retrieves only userName attributes', async () => {
             const attributes = 'userName';
-            const response = await axios.get(`${baseURL}/Users?attributes=${attributes}`);
+            const response = await axios.get(`/Users?attributes=${attributes}`);
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
             const users = response.data.Resources;
@@ -127,7 +120,7 @@ function runTests(schema, schemaExtensions = []) {
                 ]
             };
 
-            const response = await axios.post(`${baseURL}/Users`, newUser);
+            const response = await axios.post('/Users', newUser);
             assert.strictEqual(response.status, 201);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
             assert.strictEqual(
@@ -154,7 +147,7 @@ function runTests(schema, schemaExtensions = []) {
                 }
             };
 
-            const response = await axios.post(`${baseURL}/Users`, newUser);
+            const response = await axios.post('/Users', newUser);
             assert.strictEqual(response.status, 201);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
             assert.strictEqual(
@@ -178,7 +171,7 @@ function runTests(schema, schemaExtensions = []) {
                 userName: `updated${sharedState.createdUser.userName}`
             };
 
-            const updateResponse = await axios.put(`${baseURL}/Users/${sharedState.createdUser.id}`, updatedUser);
+            const updateResponse = await axios.put(`/Users/${sharedState.createdUser.id}`, updatedUser);
             assert.strictEqual(updateResponse.status, 200);
             assert.strictEqual(updateResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
             assert.strictEqual(updateResponse.data.userName, updatedUser.userName);
@@ -206,7 +199,7 @@ function runTests(schema, schemaExtensions = []) {
                 ]
             };
 
-            const patchResponse = await axios.patch(`${baseURL}/Users/${sharedState.updatedUser.id}`, patchData);
+            const patchResponse = await axios.patch(`/Users/${sharedState.updatedUser.id}`, patchData);
             assert.strictEqual(patchResponse.status, 200);
             assert.strictEqual(patchResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
             assert.strictEqual(patchResponse.data.userName, patchData.Operations[0].value);
@@ -221,7 +214,7 @@ function runTests(schema, schemaExtensions = []) {
                 return;
             }
 
-            const response = await axios.delete(`${baseURL}/Users/${sharedState.patchedUser.id}`);
+            const response = await axios.delete(`/Users/${sharedState.patchedUser.id}`);
             assert.strictEqual(response.status, 204);
         });
     });

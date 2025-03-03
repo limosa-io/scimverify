@@ -1,0 +1,42 @@
+users:
+  - userName: user1
+    displayName: User One
+    emails:
+      - value: user1@example.com
+  - userName: user2
+    displayName: User Two
+    emails:
+      - value: user2@example.com
+  - userName: user3
+    displayName: User Three
+    emails:
+      - value: user3@example.com
+  - userName: user4
+    displayName: User Four
+    emails:
+      - value: user4@example.com
+  - userName: user5
+    displayName: User Five
+    emails:
+      - value: user5@example.com
+  - userName: user6
+    displayName: User Six
+    emails:
+      - value: user6@example.com
+  - userName: user7
+    displayName: User Seven
+    emails:
+      - value: user7@example.com
+  - userName: user8
+    displayName: User Eight
+    emails:
+      - value: user8@example.com
+  - userName: user9
+    displayName: User Nine
+    emails:
+      - value: user9@example.com
+  - userName: user10
+    displayName: User Ten
+    emails:
+      - value: user10@example.com
+
