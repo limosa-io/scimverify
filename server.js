@@ -1,11 +1,6 @@
 const express = require('express');
-const { exec } = require('child_process');
-const { run } = require('node:test');
-const { spec } = require('node:test/reporters');
-const path = require('node:path');
-const { setConfiguration } = require('./src/helpers');
-const fs = require('fs');
 const { spawn } = require('child_process');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
@@ -17,14 +12,18 @@ app.post('/run-tests', (req, res) => {
         return res.status(400).send('URL and token are required');
     }
 
-    // write configuration to a file with a secure random name
-    const configurationFilePath = path.resolve(__dirname, `config-${Math.random().toString(36).substring(7)}.json`);
-    fs.writeFileSync(configurationFilePath, JSON.stringify(configuration));
+    // Convert configuration to a single environment variable
+    const env = {
+        BASE_URL: configuration.url,
+        TOKEN: configuration.token,
+        CONFIG: JSON.stringify(configuration)
+    };
 
     const testProcess = spawn('node', [
-        path.resolve(__dirname, 'index.js'),
-        configurationFilePath,
-    ]);
+        path.resolve(__dirname, 'index.js')
+    ], {
+        env: env
+    });
 
     testProcess.stdout.on('data', (data) => {
         res.write(data);
@@ -36,12 +35,10 @@ app.post('/run-tests', (req, res) => {
 
     testProcess.on('close', (code) => {
         res.end();
-        fs.unlinkSync(configurationFilePath); // clean up the configuration file
     });
 
     testProcess.on('error', (err) => {
         res.status(500).send(`Test execution failed: ${err.message}`);
-        fs.unlinkSync(configurationFilePath); // clean up the configuration file
     });
 });
 
