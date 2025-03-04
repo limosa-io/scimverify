@@ -1,28 +1,19 @@
 const axios = require('axios');
+const fs = require('fs');
 require('dotenv').config();
 
-let config = {
+let defaultConfig = {
     baseURL: process.env.BASE_URL,
     token: process.env.TOKEN
 };
 
-if (process.env.CONFIG) {
-    config.CONFIG = JSON.parse(process.env.CONFIG);
+if (!defaultConfig.baseURL || !defaultConfig.token) {
+    throw new Error('BASE_URL and TOKEN must be set in the environment variables');
 }
 
-// Validate configuration
-if (!config.url && !config.baseURL) {
-    throw new Error('URL or BASE_URL must be set in configuration');
-}
-if (!config.token) {
-    throw new Error('TOKEN must be set in configuration');
-}
-
-function getAxiosInstance() {
-    const baseURL = config.url || config.baseURL;
-    
+function getAxiosInstance(config = defaultConfig) {
     const instance = axios.create({
-        baseURL: baseURL,
+        baseURL: config.baseURL,
         headers: {
             'Authorization': `Bearer ${config.token}`
         }
@@ -30,11 +21,6 @@ function getAxiosInstance() {
     return instance;
 }
 
-function getConfig() {
-    return config.CONFIG;
-}
-
 module.exports = {
-    getAxiosInstance,
-    getConfig
+    getAxiosInstance
 };

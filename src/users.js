@@ -41,6 +41,9 @@ function runTests(schema, schemaExtensions = [], configuration) {
             const response = await axios.get('/Users');
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
+
+            assert.ok(response.data.Resources && response.data.Resources.length > 0, 'At least one user should be returned');
+
             sharedState.users = response.data.Resources;
 
             // for each resource, ensure it contains no other attributes then defined in the schema

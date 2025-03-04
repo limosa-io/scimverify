@@ -7,11 +7,6 @@ console.log('Configuration:', config);
 
 var runTests = require('./src/basics.js');
 runTests(config);
-runTests = require('./src/resourcetypes.js');
-runTests(config);
-
-var { runTests } = require('./src/schemas.js');
-runTests(config);
 
 // Function to process schemas and resource types
 function processResourcesAndSchemas(resourceTypes, schemas) {
@@ -27,7 +22,7 @@ function processResourcesAndSchemas(resourceTypes, schemas) {
     const groupSchemaId = groupResourceType.schema;
     const groupSchemaExtensionsIds = groupResourceType.schemaExtensions;
 
-    const groupSchema = schemas.find(e => e.id === 'urn:ietf:params:scim:schemas:core:2.0:Group');
+    const groupSchema = schemas.find(e => e.id === groupSchemaId);
     const groupSchemaExtensions = schemas.filter(e => groupSchemaExtensionsIds && groupSchemaExtensionsIds.includes(e.id));
 
     runTests = require('./src/users.js');
@@ -45,6 +40,8 @@ let resourceTypesPromise, schemasPromise;
 if (config.resourceTypes) {
     resourceTypesPromise = Promise.resolve(config.resourceTypes);
 } else {
+    runTests = require('./src/resourcetypes.js');
+    runTests(config);
     resourceTypesPromise = axiosInstance.get('/ResourceTypes')
         .then(response => response.data.Resources);
 }
@@ -52,6 +49,8 @@ if (config.resourceTypes) {
 if (config.schemas) {
     schemasPromise = Promise.resolve(config.schemas);
 } else {
+    var { runTests } = require('./src/schemas.js');
+    runTests(config);
     schemasPromise = axiosInstance.get('/Schemas')
         .then(response => response.data.Resources);
 }
