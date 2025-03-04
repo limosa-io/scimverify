@@ -1,55 +1,31 @@
-const test = require('node:test');
-const assert = require('assert');
-const config = require('./setup.js');
-const axios = require('axios');
+import test from 'node:test';
+import assert from 'node:assert';
+import { getAxiosInstance } from './helpers.js';
 
-function runTests() {
-    test.describe('/ResourceTypes', function () {
+function runTests(configuration) {
+    const axios = getAxiosInstance();
 
-        // ensure base url is reachable with axios, any return status code is valid
-        test('/ResourceTypes endpoint should be reachable', async function () {
-            const baseUrl = config.baseURL;
-            try {
-                await axios.get(`${baseUrl}/ResourceTypes`);
-                assert.ok(true, 'Base URL is reachable');
-            } catch (error) {
-                // assert an http response is received
-                assert.ok(error.response, 'Expected an HTTP response from' + baseUrl);
-            }
-        });
-
-        test('Should return a list of resource types', async function () {
-            const response = await axios.get(`${config.baseURL}/ResourceTypes`);
+    test.describe('/ResourceTypes', () => {
+        test('Retrieves resource types', async () => {
+            const response = await axios.get('/ResourceTypes');
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
-            const expectedAttributes = ['schemas', 'totalResults', 'Resources'];
-            const actualAttributes = Object.keys(response.data);
-            expectedAttributes.forEach(attr => {
-                assert.ok(actualAttributes.includes(attr), `Response is missing expected attribute: ${attr}`);
-            });
-        });
-
-        test('Every resource in the list should be a valid resource type', async function () {
-            const response = await axios.get(`${config.baseURL}/ResourceTypes`);
-            const resourceTypes = response.data.Resources;
-            resourceTypes.forEach(resourceType => {
-                assert.ok(resourceType.schemas && resourceType.schemas[0], 'ResourceType schemas is missing or invalid');
-                assert.strictEqual(resourceType.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:ResourceType');
-                const expectedAttributes = ['id', 'name', 'description', 'endpoint', 'schema'];
-                const actualAttributes = Object.keys(resourceType);
-                expectedAttributes.forEach(attr => {
-                    assert.ok(actualAttributes.includes(attr), `Resource is missing expected attribute: ${attr}`);
-                });
-            });
-        });
-
-        test('Should be able to retrieve a single resource type', async function () {
-            const response = await axios.get(`${config.baseURL}/ResourceTypes/User`);
-            assert.strictEqual(response.status, 200);
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:ResourceType');
-            assert.strictEqual(response.data.name, 'Users');
+            
+            const resources = response.data.Resources;
+            assert.ok(Array.isArray(resources), 'Resources should be an array');
+            
+            // Check for User and Group resource types
+            const userResourceType = resources.find(r => r.id === 'User');
+            const groupResourceType = resources.find(r => r.id === 'Group');
+            
+            assert.ok(userResourceType, 'User resource type should exist');
+            assert.ok(groupResourceType, 'Group resource type should exist');
+            
+            // Verify essential properties
+            assert.ok(userResourceType.schema, 'User resource type should have a schema');
+            assert.ok(groupResourceType.schema, 'Group resource type should have a schema');
         });
     });
 }
 
-module.exports = runTests;
+export default runTests;

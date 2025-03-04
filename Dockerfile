@@ -13,5 +13,8 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
-# Run the tests
-CMD ["node", "--test", "--test-reporter", "spec"]
+# Expose the port the app runs on
+EXPOSE 3000
+
+# Command to run the server
+CMD ["node", "server.js"]

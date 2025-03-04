@@ -1,9 +1,40 @@
 version: '3.8'
 
 services:
-  app:
+  # Node server for running SCIM verification tests
+  scimserver:
     build:
       context: .
       dockerfile: Dockerfile
+    ports:
+      - "3000:3000"  # Changed from 3000:3000 to 3001:3000
     volumes:
-      - .:/app
+      - .:/usr/src/app
+    command: ["node", "server.js"]
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    networks:
+      - scim-network
+    restart: unless-stopped
+
+  # VitePress documentation site
+  vitepress:
+    build:
+      context: ./site
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/usr/src/app
+    working_dir: /usr/src/app/site/docs
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - scim-network
+    restart: unless-stopped
+
+networks:
+  scim-network:
+    driver: bridge

@@ -1,7 +1,9 @@
-const test = require('node:test');
-var assert = require('node:assert');
-const { getAxiosInstance } = require('./helpers');
-require('dotenv').config();
+import test from 'node:test';
+import assert from 'node:assert';
+import { getAxiosInstance } from './helpers.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const sharedState = {};
 
@@ -139,4 +141,4 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
     });
 }
 
-module.exports = runTests;
+export default runTests;

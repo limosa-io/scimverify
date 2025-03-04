@@ -1,6 +1,8 @@
-const axios = require('axios');
-const fs = require('fs');
-require('dotenv').config();
+import axios from 'axios';
+import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 let defaultConfig = {
     baseURL: process.env.BASE_URL,
@@ -11,7 +13,7 @@ if (!defaultConfig.baseURL || !defaultConfig.token) {
     throw new Error('BASE_URL and TOKEN must be set in the environment variables');
 }
 
-function getAxiosInstance(config = defaultConfig) {
+export function getAxiosInstance(config = defaultConfig) {
     const instance = axios.create({
         baseURL: config.baseURL,
         headers: {
@@ -21,6 +23,6 @@ function getAxiosInstance(config = defaultConfig) {
     return instance;
 }
 
-module.exports = {
-    getAxiosInstance
-};
+export function getConfig() {
+    return defaultConfig;
+}

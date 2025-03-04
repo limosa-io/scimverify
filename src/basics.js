@@ -1,9 +1,11 @@
-const test = require('node:test');
-const assert = require('assert');
-const config = require('./setup.js');
-const axios = require('axios');
+import test from 'node:test';
+import assert from 'node:assert';
+import { getConfig } from './helpers.js';
+import axios from 'axios';
 
 function runTests() {
+    const config = getConfig();
+    
     test.describe('SCIM Base URL Tests', function() {
         test('Base URL should not contain any query parameters', function() {
             const baseUrl = config.baseURL;
@@ -36,4 +38,4 @@ function runTests() {
     });
 }
 
-module.exports = runTests;
+export default runTests;

@@ -1,7 +1,6 @@
-const test = require('node:test');
-var assert = require('node:assert');
-const { getAxiosInstance } = require('./helpers');
-require('dotenv').config();
+import test from 'node:test';
+import assert from 'node:assert';
+import { getAxiosInstance } from './helpers.js';
 
 const sharedState = {};
 
@@ -24,15 +23,20 @@ function createUserBody(user, schema, schemaExtensions){
 
 }
 
-
-function runTests(schema, schemaExtensions = [], configuration) {
+function runTests(userSchema, userSchemaExtensions = [], configuration) {
     const axios = getAxiosInstance();
+
+    test('userSchema contains attribute userName and it is marked as required', () => {    
+        const userNameAttribute = userSchema.attributes.find(attr => attr.name === 'userName');
+        assert.ok(userNameAttribute, 'userName attribute should exist in userSchema');
+        assert.strictEqual(userNameAttribute.required, true, 'userName attribute should be marked as required');
+    });
 
     test.describe('/Users', () => {
 
         // before all, ensure schema is set
         test.beforeEach(() => {
-            if (!schema) {
+            if (!userSchema) {
                 test.skip('Schema is not set');
             }
         });
@@ -48,7 +52,7 @@ function runTests(schema, schemaExtensions = [], configuration) {
 
             // for each resource, ensure it contains no other attributes then defined in the schema
             sharedState.users.forEach(user => {
-                verifyUser(user, schema, schemaExtensions);
+                verifyUser(user, userSchema, userSchemaExtensions);
             });
         });
 
@@ -62,7 +66,7 @@ function runTests(schema, schemaExtensions = [], configuration) {
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User');
             assert.strictEqual(response.data.id, firstUser.id);
-            verifyUser(response.data, schema, schemaExtensions);
+            verifyUser(response.data, userSchema, userSchemaExtensions);
             assert.ok(
                 response.headers['content-type'] === 'application/scim+json' ||
                 response.headers['content-type'] === 'application/json',
@@ -223,4 +227,4 @@ function runTests(schema, schemaExtensions = [], configuration) {
     });
 }
 
-module.exports = runTests;
+export default runTests;

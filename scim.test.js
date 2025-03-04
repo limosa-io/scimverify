@@ -1,12 +1,15 @@
-const path = require('path');
-const axios = require('axios');
-const { getAxiosInstance, getConfig } = require('./src/helpers');
+import path from 'path';
+import axios from 'axios';
+import { getAxiosInstance, getConfig } from './src/helpers.js';
 
 const config = getConfig();
-console.log('Configuration:', config);
 
-var runTests = require('./src/basics.js');
-runTests(config);
+import runBasicTests from './src/basics.js';
+runBasicTests(config);
+import runUserTests from './src/users.js';
+import runGroupTests from './src/groups.js';
+import runResourceTypeTests from './src/resourcetypes.js';
+import { runTests as runSchemaTests } from './src/schemas.js';
 
 // Function to process schemas and resource types
 function processResourcesAndSchemas(resourceTypes, schemas) {
@@ -25,11 +28,11 @@ function processResourcesAndSchemas(resourceTypes, schemas) {
     const groupSchema = schemas.find(e => e.id === groupSchemaId);
     const groupSchemaExtensions = schemas.filter(e => groupSchemaExtensionsIds && groupSchemaExtensionsIds.includes(e.id));
 
-    runTests = require('./src/users.js');
-    runTests(userSchema, userSchemaExtensions, config);
+    
+    runUserTests(userSchema, userSchemaExtensions, config);
 
-    var runTests = require('./src/groups.js');
-    runTests(groupSchema, groupSchemaExtensions, config);
+    
+    runGroupTests(groupSchema, groupSchemaExtensions, config);
 }
 
 // Initialize what we have and what we need to fetch
@@ -40,8 +43,8 @@ let resourceTypesPromise, schemasPromise;
 if (config.resourceTypes) {
     resourceTypesPromise = Promise.resolve(config.resourceTypes);
 } else {
-    runTests = require('./src/resourcetypes.js');
-    runTests(config);
+    
+    runResourceTypeTests(config);
     resourceTypesPromise = axiosInstance.get('/ResourceTypes')
         .then(response => response.data.Resources);
 }
@@ -49,8 +52,8 @@ if (config.resourceTypes) {
 if (config.schemas) {
     schemasPromise = Promise.resolve(config.schemas);
 } else {
-    var { runTests } = require('./src/schemas.js');
-    runTests(config);
+    
+    runSchemaTests(config);
     schemasPromise = axiosInstance.get('/Schemas')
         .then(response => response.data.Resources);
 }

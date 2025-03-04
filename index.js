@@ -1,7 +1,10 @@
-const { spec } = require('node:test/reporters');
-const { run } = require('node:test');
-const path = require('node:path');
-const { tap } = require('node:test/reporters');
+import { spec } from 'node:test/reporters';
+import { run } from 'node:test';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 run({
   files: [path.resolve(__dirname, 'scim.test.js')]

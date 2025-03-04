@@ -1,4 +1,12 @@
+<!-- <script setup>
+import MyComponent from './.vitepress/theme/components/MyComponent.vue'
+</script>
+
 # <span class="font-scim">SCIM</span> Verify
+
+test
+
+<MyComponent /> -->
 
 Ensure your SCIM servers adhere to specifications with SCIM Verify! This CLI tool acts as a SCIM client and tests your SCIM server for compliance. It supports discovering what’s implemented correctly and identify areas that need improvement.  
 Take action now and use SCIM Verify to guarantee your server meets the standards!

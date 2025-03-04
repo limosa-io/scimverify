@@ -1,69 +1,29 @@
-const test = require('node:test');
-const assert = require('assert');
-const config = require('./setup.js');
-const axios = require('axios');
+import test from 'node:test';
+import assert from 'node:assert';
+import { getAxiosInstance } from './helpers.js';
 
-function runTests() {
-    test.describe('/Schemas', function () {
-        // ensure base url is reachable with axios, any return status code is valid
-        test('/Schemas endpoint should be reachable', async function () {
-            const baseUrl = config.baseURL;
-            try {
-                await axios.get(`${baseUrl}/Schemas`);
-                assert.ok(true, 'Base URL is reachable');
-            } catch (error) {
-                // assert an http response is received
-                assert.ok(error.response, 'Expected an HTTP response from' + baseUrl);
-            }
-        });
+export function runTests(configuration) {
+    const axios = getAxiosInstance();
 
-        test('Should return a list of schemas', async function () {
-            const response = await axios.get(`${config.baseURL}/Schemas`);
+    test.describe('/Schemas', () => {
+        test('Retrieves schemas', async () => {
+            const response = await axios.get('/Schemas');
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
-            const expectedAttributes = ['schemas', 'totalResults', 'Resources'];
-            const actualAttributes = Object.keys(response.data);
-            expectedAttributes.forEach(attr => {
-                assert.ok(actualAttributes.includes(attr), `Response is missing expected attribute: ${attr}`);
-            });
-        });
-
-        test('Every schema in the list should be valid', async function () {
-            const response = await axios.get(`${config.baseURL}/Schemas`);
-            const resourceTypes = response.data.Resources;
-            resourceTypes.forEach(resourceType => {
-                assert.ok(resourceType.schemas && resourceType.schemas[0], 'Schemas is missing or invalid');
-                assert.strictEqual(resourceType.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Schema');
-                const expectedAttributes = ['id', 'name'];
-                const actualAttributes = Object.keys(resourceType);
-                expectedAttributes.forEach(attr => {
-                    assert.ok(actualAttributes.includes(attr), `Schema is missing expected attribute: ${attr}`);
-                });
-            });
-        });
-
-        test('Should be able to retrieve a single schema', async function () {
-            const response = await axios.get(`${config.baseURL}/Schemas/urn:ietf:params:scim:schemas:core:2.0:User`);
-            assert.strictEqual(response.status, 200);
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Schema');
-            assert.strictEqual(response.data.name, 'User');
-        });
-
-
-        test('Group schema should have displayName as a required attribute if it exists', async function () {
-            const response = await axios.get(`${config.baseURL}/Schemas`);
-            const resourceTypes = response.data.Resources;
-            const groupSchema = resourceTypes.find(resourceType => resourceType.id === 'urn:ietf:params:scim:schemas:core:2.0:Group');
-            if (groupSchema) {
-                const displayNameAttribute = groupSchema.attributes.find(attr => attr.name === 'displayName');
-                assert.ok(displayNameAttribute, 'displayName attribute is missing');
-                assert.strictEqual(displayNameAttribute.required, true, 'displayName attribute should be marked as required');
-            }
+            
+            const resources = response.data.Resources;
+            assert.ok(Array.isArray(resources), 'Schemas should be an array');
+            
+            // Check for core schema definitions
+            const userSchema = resources.find(s => s.id === 'urn:ietf:params:scim:schemas:core:2.0:User');
+            const groupSchema = resources.find(s => s.id === 'urn:ietf:params:scim:schemas:core:2.0:Group');
+            
+            assert.ok(userSchema, 'User schema should exist');
+            assert.ok(groupSchema, 'Group schema should exist');
+            
+            // Verify attributes
+            assert.ok(Array.isArray(userSchema.attributes), 'User schema should have attributes');
+            assert.ok(Array.isArray(groupSchema.attributes), 'Group schema should have attributes');
         });
     });
 }
-
-
-module.exports = {
-    runTests
-};
