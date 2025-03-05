@@ -1,9 +1,9 @@
-<!-- <script setup>
+<script setup>
 import MyComponent from './.vitepress/theme/components/MyComponent.vue'
 </script>
 
 # <span class="font-scim">SCIM</span> Verify
-
+<!-- 
 test
 
 <MyComponent /> -->
