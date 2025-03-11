@@ -19,13 +19,36 @@
   </div>
 
   <div class="test-output">
-    <h2>Test Output:</h2>
-    <pre>{{ output }}</pre>
-
-    <div v-for="(value, key) in result" :key="key" class="result-item">
-      <div class="result-key">{{ key }}</div>
-      <div class="result-value">
-        <pre>{{ JSON.stringify(value, null, 2) }}</pre>
+    <div v-for="(fileMap, filename) in result" :key="filename" class="result-file">
+      <div v-for="(testResult, position) in fileMap[1]" :key="position" class="result-item">
+        <div class="result-value" v-if="testResult[1].type !== 'test:summary'">
+          <span>
+            <template v-if="testResult[1].data.nesting == 0">
+              <template v-if="testResult[1].type == 'test:pass'">
+                <span style="color: green;">▶</span>
+              </template>
+              <template v-else-if="testResult[1].type == 'test:fail'">
+                <span style="color: red;">▶</span>
+              </template>
+              <template v-else>
+                ▶
+              </template>
+            </template>
+            {{ '&nbsp;'.repeat(testResult[1].data.nesting) }}
+            <template v-if="testResult[1].data.nesting > 0">
+              <template v-if="testResult[1].data.skip != null">
+                <span style="color: black;">~</span>
+              </template>
+              <template v-else-if="testResult[1].type == 'test:pass'">
+                <span style="color: green;">✔</span>
+              </template>
+              <template v-else-if="testResult[1].type == 'test:fail'">
+                <span style="color: red;">✖</span>
+              </template>
+            </template>
+            {{ testResult[1].data.name }}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -37,12 +60,13 @@ import { io } from 'socket.io-client';
 export default {
   data() {
     return {
-      url: '',
-      token: '',
+      url: 'https://api.scim.dev/scim/v2',
+      token: 'NGcR0rU8OPpUicbvnrbTJImTCPuQAnGUopECdN8w3Q8PPnYMJwkfcFdRt6SP',
       config: '',
       output: '',
       socket: null,
-      result: new Map()
+      result: new Map(),
+      results: []
     };
   },
   beforeUnmount() {
@@ -71,7 +95,33 @@ export default {
           try {
             const json = JSON.parse(line);
             // Fix the syntax error in the following line
-            this.result.set(`${json.data.line}-${json.data.column}-${json.data.file}`, json);
+
+            console.log(json);
+
+            if (json.data.file === json.data.name) {
+              return;
+            }
+
+            // Create nested map structure by filename and line-column
+            if (!this.result.has(json.data.file)) {
+              this.result.set(json.data.file, new Map());
+            }
+            const fileMap = this.result.get(json.data.file);
+            fileMap.set(`${json.data.line}-${json.data.column}`, json);
+            // Sort the fileMap entries by line number
+            const sortedEntries = Array.from(fileMap.entries()).sort((a, b) => {
+              const lineA = parseInt(a[0].split('-')[0]);
+              const lineB = parseInt(b[0].split('-')[0]);
+              return lineA - lineB;
+            });
+
+            // Clear the existing map and add the sorted entries back
+            fileMap.clear();
+            for (const [key, value] of sortedEntries) {
+              fileMap.set(key, value);
+            }
+
+            // this.results.push(json);
           } catch (err) {
             console.error('Failed to parse JSON:', err, line);
           }
@@ -106,6 +156,7 @@ export default {
 
       this.setupSocket(); // Connect to socket when running tests
 
+      this.result.clear();
       this.socket.emit('start-tests', {
         url: this.url,
         token: this.token,

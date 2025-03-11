@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { skip } from 'node:test';
 import assert from 'node:assert';
 import { getAxiosInstance } from './helpers.js';
 
@@ -32,16 +32,17 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         assert.strictEqual(userNameAttribute.required, true, 'userName attribute should be marked as required');
     });
 
-    test.describe('/Users', () => {
+    test.describe('/Users', (t) => {
 
         // before all, ensure schema is set
         test.beforeEach(() => {
             if (!userSchema) {
-                test.skip('Schema is not set');
+                t.skip('Schema is not set');
+                return; // Add return statement to ensure test is skipped
             }
         });
 
-        test('Retrieves a list of users', async () => {
+        test('Retrieves a list of users', async (t) => {
             const response = await axios.get('/Users');
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
@@ -56,9 +57,9 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             });
         });
 
-        test('Retrieves a single user', async () => {
+        test('Retrieves a single user', async (t) => {
             if (!sharedState.users || sharedState.users.length === 0) {
-                test.skip('Previous test failed or no users found in shared state');
+                t.skip('Previous test failed or no users found in shared state');
                 return;
             }
             const firstUser = sharedState.users[0];
@@ -165,10 +166,10 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             sharedState.createdUser = response.data;
         });
 
-        test('Updates a user using PUT', async () => {
+        test('Updates a user using PUT', async (t) => {
             // TODO: get user from retrieved users, do not use created user
             if (!sharedState.createdUser) {
-                test.skip('Previous test failed or no user created in shared state');
+                t.skip('Previous test failed or no user created in shared state');
                 return;
             }
 
@@ -187,11 +188,11 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             sharedState.updatedUser = updateResponse.data;
         });
 
-        test('Updates a user using PATCH', async () => {
+        test('Updates a user using PATCH', async (t) => {
             // TODO: get user from retrieved users, do not use created user
             // TODO: test other operations
             if (!sharedState.updatedUser) {
-                test.skip('Previous test failed or no user updated in shared state');
+                t.skip('Previous test failed or no user updated in shared state');
                 return;
             }
 
@@ -215,9 +216,9 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             sharedState.patchedUser = patchResponse.data;
         });
 
-        test('Deletes a user', async () => {
+        test('Deletes a user', async (t) => {
             if (!sharedState.patchedUser) {
-                test.skip('Previous test failed or no user patched in shared state');
+                t.skip('Previous test failed or no user patched in shared state');
                 return;
             }
 
