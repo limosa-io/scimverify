@@ -6,7 +6,8 @@ dotenv.config();
 
 let defaultConfig = {
     baseURL: process.env.BASE_URL,
-    token: process.env.TOKEN
+    token: process.env.TOKEN,
+    config: JSON.parse(process.env.CONFIG)
 };
 
 if (!defaultConfig.baseURL || !defaultConfig.token) {

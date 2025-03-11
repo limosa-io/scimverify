@@ -28,9 +28,9 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             sharedState.groups = response.data.Resources;
         });
 
-        test('Retrieves a single group', async () => {
+        test('Retrieves a single group', async (t) => {
             if (!sharedState.groups || sharedState.groups.length === 0) {
-                test.skip('Previous test failed or no groups found in shared state');
+                t.skip('Previous test failed or no groups found in shared state');
                 return;
             }
             const firstGroup = sharedState.groups[0];
