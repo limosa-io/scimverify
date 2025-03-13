@@ -1,6 +1,5 @@
 <template>
   <div class="test-form">
-    <h1>SCIM Verify Test Runner</h1>
     <form @submit.prevent="runTests">
       <div class="form-group">
         <label for="url">SCIM Base URL:</label>
@@ -19,37 +18,38 @@
   </div>
 
   <div class="test-output">
-    <div v-for="(fileMap, filename) in result" :key="filename" class="result-file">
-      <div v-for="(testResult, position) in fileMap[1]" :key="position" class="result-item">
-        <div class="result-value" v-if="testResult[1].type !== 'test:summary'">
+      <div v-for="r in results" class="result-item">
+        <div class="result-value" v-if="r.getLatest().type !== 'test:summary'">
           <span>
-            <template v-if="testResult[1].data.nesting == 0">
-              <template v-if="testResult[1].type == 'test:pass'">
+            <template v-if="r.getLatest().data.nesting == 0">
+              <template v-if="r.getLatest().type == 'test:pass'">
                 <span style="color: green;">▶</span>
               </template>
-              <template v-else-if="testResult[1].type == 'test:fail'">
+              <template v-else-if="r.getLatest().type == 'test:fail'">
                 <span style="color: red;">▶</span>
               </template>
               <template v-else>
                 ▶
               </template>
             </template>
-            {{ '&nbsp;'.repeat(testResult[1].data.nesting) }}
-            <template v-if="testResult[1].data.nesting > 0">
-              <template v-if="testResult[1].data.skip != null">
+            {{ '&nbsp;'.repeat(r.getLatest().data.nesting) }}
+            <template v-if="r.getLatest().data.nesting > 0">
+              <template v-if="r.getLatest().data.skip != null">
                 <span style="color: black;">~</span>
               </template>
-              <template v-else-if="testResult[1].type == 'test:pass'">
+              <template v-else-if="r.getLatest().type == 'test:pass'">
                 <span style="color: green;">✔</span>
               </template>
-              <template v-else-if="testResult[1].type == 'test:fail'">
+              <template v-else-if="r.getLatest().type == 'test:fail'">
                 <span style="color: red;">✖</span>
+                <p>
+                  {{ r.getLatest().data.details }}
+                </p>
               </template>
             </template>
-            {{ testResult[1].data.name }}
+            {{ r.getLatest().data.name }}
           </span>
         </div>
-      </div>
     </div>
 
   </div>
@@ -57,6 +57,26 @@
 
 <script>
 import { io } from 'socket.io-client';
+
+class TestResult {
+  
+  constructor(file, line, column) {
+    this.file = file;
+    this.line = line;
+    this.column = column;
+    this.messages = [];
+  }
+
+  getLatest() {
+    if (this.messages.length === 0) {
+      return null;
+    }
+    return this.messages[this.messages.length - 1];
+  }
+
+  
+}
+
 export default {
   data() {
     return {
@@ -66,7 +86,7 @@ export default {
       output: '',
       socket: null,
       result: new Map(),
-      results: []
+      results: [],
     };
   },
   beforeUnmount() {
@@ -91,10 +111,34 @@ export default {
       });
 
       this.socket.on('test-output', (data) => {
+
         data.split('\n').filter(e => e.length > 0).forEach(line => {
           try {
             const json = JSON.parse(line);
             // Fix the syntax error in the following line
+            
+            // append to results, or update existing entry if it has the same file, line and column
+            if (json.data.nesting >= 0) {
+              const existing = this.results.find(
+                r =>
+                  r.file === json.data.file
+                  && r.line === json.data.line
+                  && r.column === json.data.column
+              );
+              if (existing) {
+                existing.messages.push(json);
+              } else {
+                let r = new TestResult(
+                  json.data.file,
+                  json.data.line,
+                  json.data.column
+                );
+                r.messages.push(json);
+                this.results.push(r);
+              }
+            }
+
+
 
             console.log(json);
 
@@ -107,7 +151,9 @@ export default {
               this.result.set(json.data.file, new Map());
             }
             const fileMap = this.result.get(json.data.file);
+
             fileMap.set(`${json.data.line}-${json.data.column}`, json);
+
             // Sort the fileMap entries by line number
             const sortedEntries = Array.from(fileMap.entries()).sort((a, b) => {
               const lineA = parseInt(a[0].split('-')[0]);
@@ -121,11 +167,12 @@ export default {
               fileMap.set(key, value);
             }
 
-            // this.results.push(json);
           } catch (err) {
             console.error('Failed to parse JSON:', err, line);
           }
         });
+
+
       });
 
       this.socket.on('test-error', (data) => {
@@ -157,6 +204,7 @@ export default {
       this.setupSocket(); // Connect to socket when running tests
 
       this.result.clear();
+      this.results = [];
       this.socket.emit('start-tests', {
         url: this.url,
         token: this.token,

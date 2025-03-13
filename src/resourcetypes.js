@@ -8,8 +8,8 @@ function runTests(configuration) {
     test.describe('/ResourceTypes', () => {
         test('Retrieves resource types', async () => {
             const response = await axios.get('/ResourceTypes');
-            assert.strictEqual(response.status, 200);
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
+            assert.strictEqual(response.status, 200, 'ResourceTypes endpoint should return status code 200');
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should have the correct ListResponse schema');
             
             const resources = response.data.Resources;
             assert.ok(Array.isArray(resources), 'Resources should be an array');

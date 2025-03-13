@@ -45,6 +45,7 @@ io.on('connection', (socket) => {
                 CONFIG: JSON.stringify(configuration)
             }
         });
+        
 
         testProcess.stdout.on('data', (data) => {
             socket.emit('test-output', data.toString());

@@ -10,7 +10,7 @@ const sharedState = {};
 function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
     const axios = getAxiosInstance();
 
-    test('groupSchema contains attribute displayName and it is marked as required', () => {    
+    test('groupSchema contains attribute displayName and it is marked as required', () => {
         const displayNameAttribute = groupSchema.attributes.find(attr => attr.name === 'displayName');
         assert.ok(displayNameAttribute, 'displayName attribute should exist in groupSchema');
         assert.strictEqual(displayNameAttribute.required, true, 'displayName attribute should be marked as required');
@@ -20,8 +20,8 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
         // TODO: Retrieve all groups, ensure that for creating a new group an unique name is used...
         test('Retrieves a list of groups', async (t) => {
             const response = await axios.get('/Groups');
-            assert.strictEqual(response.status, 200);
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
+            assert.strictEqual(response.status, 200, 'GET /Groups should return status code 200');
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should contain the correct schema');
             const expectedAttributes = ['totalResults', 'itemsPerPage', 'startIndex', 'schemas', 'Resources'];
             const actualAttributes = Object.keys(response.data);
             assert.deepStrictEqual(actualAttributes.sort(), expectedAttributes.sort(), 'Response attributes do not match expected attributes');
@@ -35,9 +35,9 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             }
             const firstGroup = sharedState.groups[0];
             const response = await axios.get(`/Groups/${firstGroup.id}`);
-            assert.strictEqual(response.status, 200);
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group');
-            assert.strictEqual(response.data.id, firstGroup.id);
+            assert.strictEqual(response.status, 200, 'GET /Groups/{id} should return status code 200');
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
+            assert.strictEqual(response.data.id, firstGroup.id, 'Returned group ID should match requested group ID');
             assert.ok(response.data.displayName, 'Group should contain displayName attribute');
             assert.ok(
                 response.headers['content-type'] === 'application/scim+json' ||
@@ -47,13 +47,10 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
         });
 
         test('Handles retrieval of a non-existing group', async () => {
-            try {
-                await axios.get('/Groups/9876543210123456');
-                assert.fail('Expected error not thrown');
-            } catch (error) {
-                assert.strictEqual(error.response.status, 404);
-                assert.strictEqual(error.response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error');
-            }
+            const response = await axios.get('/Groups/9876543210123456');
+            assert.strictEqual(response.status, 404, 'A non-existing group should return 404');
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should contain the correct error schema');
+
         });
 
         test('Creates a new group - Alternative 1', async () => {
@@ -63,9 +60,9 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             };
 
             const response = await axios.post('/Groups', newGroup);
-            assert.strictEqual(response.status, 201);
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group');
-            assert.strictEqual(response.data.displayName, newGroup.displayName);
+            assert.strictEqual(response.status, 201, 'POST /Groups should return status code 201 when creating a new group');
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
+            assert.strictEqual(response.data.displayName, newGroup.displayName, 'Created group should have the same displayName as requested');
 
             // Store the created group in shared state for further tests
             sharedState.createdGroup = response.data;
@@ -82,9 +79,9 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             };
 
             const response = await axios.post('/Groups', newGroup);
-            assert.strictEqual(response.status, 201);
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group');
-            assert.strictEqual(response.data.displayName, groupName);
+            assert.strictEqual(response.status, 201, 'POST /Groups should return status code 201 when creating a new group');
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
+            assert.strictEqual(response.data.displayName, groupName, 'Created group should have the same displayName as requested');
 
             // Store the created group in shared state for further tests
             sharedState.createdGroup = response.data;
@@ -96,29 +93,26 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
                 schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
             };
 
-            try {
-                await axios.post('/Groups', newGroup);
-                assert.fail('Expected error to be thrown');
-            } catch (error) {
-                assert.strictEqual(error.response.status, 400);
-                assert.strictEqual(error.response.data.scimType, "invalidSyntax");
-                assert.strictEqual(error.response.data.status, 400);
-                assert.strictEqual(error.response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error');
-            }
+            const response = await axios.post('/Groups', newGroup);
+            assert.strictEqual(response.status, 400, 'Creating an invalid group should return status code 400');
+            assert.strictEqual(response.data.scimType, "invalidSyntax", 'Error should have scimType set to invalidSyntax');
+            assert.strictEqual(response.data.status, 400, 'Error response status should match HTTP status code');
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should contain the correct error schema');
+
         });
 
         test('Assigns a user to a group', async () => {
             // Retrieve a user
             const userResponse = await axios.get('/Users');
-            assert.strictEqual(userResponse.status, 200);
-            assert.strictEqual(userResponse.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
+            assert.strictEqual(userResponse.status, 200, 'GET /Users should return status code 200');
+            assert.strictEqual(userResponse.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'User list response should contain the correct schema');
             const user = userResponse.data.Resources[0];
             assert.ok(user, 'User should exist');
 
             // Retrieve a group
             const groupResponse = await axios.get('/Groups');
-            assert.strictEqual(groupResponse.status, 200);
-            assert.strictEqual(groupResponse.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');
+            assert.strictEqual(groupResponse.status, 200, 'GET /Groups should return status code 200');
+            assert.strictEqual(groupResponse.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Group list response should contain the correct schema');
             const group = groupResponse.data.Resources[0];
             assert.ok(group, 'Group should exist');
 
@@ -134,8 +128,8 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
                     }]
                 }]
             });
-            assert.strictEqual(patchResponse.status, 200);
-            assert.strictEqual(patchResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group');
+            assert.strictEqual(patchResponse.status, 200, 'PATCH /Groups/{id} should return status code 200 when assigning a user to a group');
+            assert.strictEqual(patchResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
             assert.ok(patchResponse.data.members.some(member => member.value === user.id), 'User should be assigned to the group');
         });
     });

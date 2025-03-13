@@ -27,11 +27,8 @@ function processResourcesAndSchemas(resourceTypes, schemas) {
 
     const groupSchema = schemas.find(e => e.id === groupSchemaId);
     const groupSchemaExtensions = schemas.filter(e => groupSchemaExtensionsIds && groupSchemaExtensionsIds.includes(e.id));
-
-    
+        
     runUserTests(userSchema, userSchemaExtensions, config);
-
-    
     runGroupTests(groupSchema, groupSchemaExtensions, config);
 }
 
