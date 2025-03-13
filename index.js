@@ -9,7 +9,8 @@ const __dirname = path.dirname(__filename);
 // Run tests sequentially and pipe directly to NDJSON reporter and stdout
 run({
   files: [path.resolve(__dirname, 'scim.test.js')],
-  concurrency: 1
+  concurrency: 1,
+  
 }).on('test:fail', () => {
   process.exitCode = 1;
 })

@@ -18,40 +18,42 @@
   </div>
 
   <div class="test-output">
-      <div v-for="r in results" class="result-item">
-        <div class="result-value" v-if="r.getLatest().type !== 'test:summary'">
-          <span>
-            <template v-if="r.getLatest().data.nesting == 0">
-              <template v-if="r.getLatest().type == 'test:pass'">
-                <span style="color: green;">▶</span>
+      <div v-for="testFile in testFiles" class="file-item">
+        <h3>{{ testFile.file }}</h3>
+        <div v-for="r in testFile.results" class="result-item">
+          <div class="result-value" v-if="r.getLatest().type !== 'test:summary'">
+            <span style="clear: both;">
+              <template v-if="r.getLatest().data.nesting == 0">
+                <template v-if="r.getLatest().type == 'test:pass'">
+                  <span style="color: green;">▶</span>
+                </template>
+                <template v-else-if="r.getLatest().type == 'test:fail'">
+                  <span style="color: red;">▶</span>
+                </template>
+                <template v-else>
+                  ▶
+                </template>
               </template>
-              <template v-else-if="r.getLatest().type == 'test:fail'">
-                <span style="color: red;">▶</span>
+              {{ '&nbsp;'.repeat(r.getLatest().data.nesting) }}
+              <template v-if="r.getLatest().data.nesting > 0">
+                <template v-if="r.getLatest().data.skip != null">
+                  <span style="color: black;">~</span>
+                </template>
+                <template v-else-if="r.getLatest().type == 'test:pass'">
+                  <span style="color: green;">✔</span>
+                </template>
+                <template v-else-if="r.getLatest().type == 'test:fail'">
+                  <span style="color: red;">✖</span><br />
+                </template>
               </template>
-              <template v-else>
-                ▶
-              </template>
-            </template>
-            {{ '&nbsp;'.repeat(r.getLatest().data.nesting) }}
-            <template v-if="r.getLatest().data.nesting > 0">
-              <template v-if="r.getLatest().data.skip != null">
-                <span style="color: black;">~</span>
-              </template>
-              <template v-else-if="r.getLatest().type == 'test:pass'">
-                <span style="color: green;">✔</span>
-              </template>
-              <template v-else-if="r.getLatest().type == 'test:fail'">
-                <span style="color: red;">✖</span>
-                <p>
-                  {{ r.getLatest().data.details }}
-                </p>
-              </template>
-            </template>
-            {{ r.getLatest().data.name }}
-          </span>
-        </div>
+              {{ r.getLatest().data.name }}
+            </span>
+            <p v-if="r.getLatest().type == 'test:fail'">
+                    {{ r.getLatest().data.details.assertionMessage.replace('\n\n',': ') }}
+              </p>
+          </div>
+      </div>
     </div>
-
   </div>
 </template>
 
@@ -59,7 +61,6 @@
 import { io } from 'socket.io-client';
 
 class TestResult {
-  
   constructor(file, line, column) {
     this.file = file;
     this.line = line;
@@ -73,8 +74,21 @@ class TestResult {
     }
     return this.messages[this.messages.length - 1];
   }
+}
 
-  
+class TestFile {
+  constructor(fileName) {
+    this.file = fileName;
+    this.results = [];
+  }
+
+  addResult(result) {
+    this.results.push(result);
+  }
+
+  findResult(line, column) {
+    return this.results.find(r => r.line === line && r.column === column);
+  }
 }
 
 export default {
@@ -86,7 +100,7 @@ export default {
       output: '',
       socket: null,
       result: new Map(),
-      results: [],
+      testFiles: [],
     };
   },
   beforeUnmount() {
@@ -119,12 +133,15 @@ export default {
             
             // append to results, or update existing entry if it has the same file, line and column
             if (json.data.nesting >= 0) {
-              const existing = this.results.find(
-                r =>
-                  r.file === json.data.file
-                  && r.line === json.data.line
-                  && r.column === json.data.column
-              );
+              // Find or create TestFile
+              let testFile = this.testFiles.find(tf => tf.file === json.data.file);
+              if (!testFile) {
+                testFile = new TestFile(json.data.file);
+                this.testFiles.push(testFile);
+              }
+              
+              // Find or create TestResult
+              let existing = testFile.findResult(json.data.line, json.data.column);
               if (existing) {
                 existing.messages.push(json);
               } else {
@@ -134,14 +151,10 @@ export default {
                   json.data.column
                 );
                 r.messages.push(json);
-                this.results.push(r);
+                testFile.addResult(r);
               }
             }
-
-
-
-            console.log(json);
-
+            
             if (json.data.file === json.data.name) {
               return;
             }
@@ -204,7 +217,7 @@ export default {
       this.setupSocket(); // Connect to socket when running tests
 
       this.result.clear();
-      this.results = [];
+      this.testFiles = [];
       this.socket.emit('start-tests', {
         url: this.url,
         token: this.token,
@@ -265,5 +278,17 @@ pre {
   font-family: monospace;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.file-item {
+  margin-bottom: 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+.file-item h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+  color: #333;
 }
 </style>
