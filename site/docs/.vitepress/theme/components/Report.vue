@@ -11,39 +11,111 @@
       </div>
 
       <div class="form-group">
-        <label>Resource Types:</label>
-        <div class="radio-group">
-          <label>
-            <input type="radio" v-model="resourceType" value="detect" checked>
-            Detect
-          </label>
-          <label>
-            <input type="radio" v-model="resourceType" value="users">
+        <div class="option">
+          <input type="checkbox" id="detect-schema" v-model="model.detectSchema">
+          <label for="detect-schema">Detect Schema</label>
+        </div>
+        
+        <div class="option">
+          <input type="checkbox" id="detect-resource-types" v-model="model.detectResourceTypes">
+          <label for="detect-resource-types">Detect Resource Types</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Resource Type:</label>
+        <div class="tabs">
+          <div class="tab" :class="{ active: activeTab === 'Users' }" @click="setResourceType('Users')">
             Users
-          </label>
-          <label>
-            <input type="radio" v-model="resourceType" value="groups">
+          </div>
+          <div class="tab" :class="{ active: activeTab === 'Groups' }" @click="setResourceType('Groups')">
             Groups
-          </label>
-          <label>
-            <input type="radio" v-model="resourceType" value="both">
-            Users &amp; Groups
-          </label>
+          </div>
+          <!-- <div class="tab" :class="{ active: activeTab === 'Custom' }" @click="setResourceType('Custom')">
+            Custom
+          </div> -->
+        </div>
+
+        <div v-if="activeTab === 'Users'" class="tab-content">
+          <div class="option">
+            <input type="checkbox" id="enable-users" v-model="model.users.enabled">
+            <label for="enable-users">Enable Users testing</label>
+          </div>
+
+          <div class="option">
+            <input type="checkbox" id="enable-users-create" v-model="model.users.enableCreate">
+            <label for="enable-users-create">Enable Create</label>
+          </div>
+          
+          <div class="option">
+            <input type="checkbox" id="enable-users-replace" v-model="model.users.enableReplace">
+            <label for="enable-users-replace">Enable Replace (PUT)</label>
+          </div>
+          
+          <div class="option">
+            <input type="checkbox" id="enable-users-update" v-model="model.users.enableUpdate">
+            <label for="enable-users-update">Enable Update (PATCH)</label>
+          </div>
+          
+          <div class="option">
+            <input type="checkbox" id="enable-users-delete" v-model="model.users.enableDelete">
+            <label for="enable-users-delete">Enable Delete</label>
+          </div>
+
+          <div class="option">
+            <label for="users-sort-attributes">Sort Attributes to Test:</label>
+            <input type="text" id="users-sort-attributes" v-model="userSortAttributesText"
+              placeholder="Comma-separated attributes" @change="updateUserSortAttributes">
+          </div>
+
+        </div>
+
+        <div v-if="activeTab === 'Groups'" class="tab-content">
+          <div class="option">
+            <input type="checkbox" id="enable-groups" v-model="model.groups.enabled">
+            <label for="enable-groups">Enable Groups testing</label>
+          </div>
+          
+          <div class="option">
+            <input type="checkbox" id="enable-groups-create" v-model="model.groups.enableCreate">
+            <label for="enable-groups-create">Enable Create</label>
+          </div>
+          
+          <div class="option">
+            <input type="checkbox" id="enable-groups-replace" v-model="model.groups.enableReplace">
+            <label for="enable-groups-replace">Enable Replace (PUT)</label>
+          </div>
+          
+          <div class="option">
+            <input type="checkbox" id="enable-groups-update" v-model="model.groups.enableUpdate">
+            <label for="enable-groups-update">Enable Update (PATCH)</label>
+          </div>
+          
+          <div class="option">
+            <input type="checkbox" id="enable-groups-delete" v-model="model.groups.enableDelete">
+            <label for="enable-groups-delete">Enable Delete</label>
+          </div>
+          
+          <div class="option">
+            <label for="groups-sort-attributes">Sort Attributes to Test:</label>
+            <input type="text" id="groups-sort-attributes" v-model="groupSortAttributesText"
+              placeholder="Comma-separated attributes" @change="updateGroupSortAttributes">
+          </div>
         </div>
       </div>
 
       <div class="form-group">
         <label for="config">Optional JSON Configuration:</label>
-        <textarea id="config" v-model="config">
-
-        </textarea>
+        <textarea id="config" v-model="config" readonly></textarea>
       </div>
       <button type="submit">Run Tests</button>
     </form>
   </div>
 
   <div class="test-output">
-    <div v-for="testFile in testFiles.filter(f => f.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type)).length > 0)" class="file-item">
+    <div
+      v-for="testFile in testFiles.filter(f => f.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type)).length > 0)"
+      class="file-item">
       <details v-for="r in testFile.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type))"
         class="result-item">
         <summary class="result-value" :class="[r.getLatest().type, r.skipped() ? 'test:skip' : '']">
@@ -108,14 +180,89 @@ export default {
       socket: null,
       result: new Map(),
       testFiles: [],
-      resourceType: 'detect'
+      activeTab: 'Users',
+      
+      // Simple nested model structure with detection options
+      model: {
+        detectSchema: true,
+        detectResourceTypes: true,
+        users: {
+          enabled: true,
+          sortAttributes: ['userName'],
+          enableCreate: true,
+          enableReplace: true,
+          enableUpdate: true,
+          enableDelete: true
+        },
+        groups: {
+          enabled: true,
+          sortAttributes: ['displayName'],
+          enableCreate: true,
+          enableReplace: true,
+          enableUpdate: true,
+          enableDelete: true
+        },
+        custom: {
+          enabled: false,
+          schema: '',
+          sortAttributes: []
+        }
+      },
+      
+      // Text fields for sort attributes
+      userSortAttributesText: 'userName',
+      groupSortAttributesText: 'displayName',
+      customSortAttributesText: ''
     };
   },
+  created() {
+    // Initialize text fields from model
+    this.userSortAttributesText = this.model.users.sortAttributes.join(', ');
+    this.groupSortAttributesText = this.model.groups.sortAttributes.join(', ');
+    this.customSortAttributesText = this.model.custom.sortAttributes.join(', ');
+    
+    // Initialize the config display
+    this.updateConfig();
+  },
   watch: {
-    resourceType() {
-      this.config = JSON.stringify({
-        resourceType: this.resourceType
-      }, null, 2);
+    'model': function() {
+      this.updateConfig();
+    },
+    'model.groups.enabled': function() {
+      this.updateConfig();
+    },
+    'model.users.enableCreate': function() {
+      this.updateConfig();
+    },
+    'model.users.enableReplace': function() {
+      this.updateConfig();
+    },
+    'model.users.enableUpdate': function() {
+      this.updateConfig();
+    },
+    'model.groups.enableCreate': function() {
+      this.updateConfig();
+    },
+    'model.groups.enableReplace': function() {
+      this.updateConfig();
+    },
+    'model.groups.enableUpdate': function() {
+      this.updateConfig();
+    },
+    'model.detectSchema': function() {
+      this.updateConfig();
+    },
+    'model.detectResourceTypes': function() {
+      this.updateConfig();
+    },
+    'model.users.enableDelete': function() {
+      this.updateConfig();
+    },
+    'model.groups.enableDelete': function() {
+      this.updateConfig();
+    },
+    activeTab() {
+      this.updateConfig();
     }
   },
   beforeUnmount() {
@@ -124,6 +271,35 @@ export default {
     }
   },
   methods: {
+    updateUserSortAttributes() {
+      this.model.users.sortAttributes = this.userSortAttributesText
+        .split(',')
+        .map(attr => attr.trim())
+        .filter(attr => attr);
+      this.updateConfig();
+    },
+    updateGroupSortAttributes() {
+      this.model.groups.sortAttributes = this.groupSortAttributesText
+        .split(',')
+        .map(attr => attr.trim())
+        .filter(attr => attr);
+      this.updateConfig();
+    },
+    updateConfig() {
+      const configObj = {
+        detectSchema: this.model.detectSchema,
+        detectResourceTypes: this.model.detectResourceTypes,
+        users: this.model.users,
+        groups: this.model.groups
+      };
+      
+      this.config = JSON.stringify(configObj, null, 2);
+    },
+    setResourceType(type) {
+      this.activeTab = type;
+      this.updateConfig();
+    },
+    
     setupSocket() {
       if (this.socket && this.socket.connected) {
         return; // Socket already connected
@@ -222,29 +398,147 @@ export default {
     },
     runTests() {
       this.output = ''; // Clear previous output
-      let configObject = {};
-      try {
-        configObject = this.config ? JSON.parse(this.config) : {};
-      } catch (e) {
-        this.output = 'Invalid JSON configuration';
-        return;
+      
+      const configObject = {
+        url: this.url,
+        token: this.token,
+        activeTab: this.activeTab,
+        detectSchema: this.model.detectSchema,
+        detectResourceTypes: this.model.detectResourceTypes,
+        users: this.model.users,
+        groups: this.model.groups
+      };
+      
+      if (this.activeTab === 'Custom' && this.model.custom.enabled) {
+        configObject.custom = this.model.custom;
       }
 
       this.setupSocket(); // Connect to socket when running tests
 
       this.result.clear();
       this.testFiles = [];
-      this.socket.emit('start-tests', {
-        url: this.url,
-        token: this.token,
-        ...configObject
-      });
+      this.socket.emit('start-tests', configObject);
     }
   }
 };
 </script>
 
 <style scoped>
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 0; /* Removed margin to eliminate spacing */
+  gap: 4px;
+}
+
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  margin-bottom: -1px;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.2s ease;
+  background-color: #f8fafc;
+  font-weight: 500;
+  user-select: none;
+}
+
+.tab:hover {
+  background-color: #edf2f7;
+  color: #3182ce;
+}
+
+.tab.active {
+  background-color: #fff;
+  border-color: #ddd;
+  border-bottom-color: white;
+  font-weight: 600;
+  color: #3182ce;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tab-content {
+  padding: 18px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.option {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.option input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  margin-right: 10px;
+  position: relative;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.option input[type="checkbox"]:checked {
+  background-color: #4299e1;
+  border-color: #4299e1;
+}
+
+.option input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.option input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.25);
+}
+
+.option label {
+  display: inline-block;
+  font-weight: 500;
+  cursor: pointer;
+  color: #4a5568;
+  user-select: none;
+  width: 300px;
+}
+
+select[multiple] {
+  height: 120px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px;
+  width: 100%;
+  background-color: white;
+}
+
+select[multiple] option {
+  padding: 6px 8px;
+  margin: 2px 0;
+  border-radius: 4px;
+}
+
+select[multiple] option:checked {
+  background-color: #ebf4ff;
+  color: #3182ce;
+}
+
 .test-output {
   border: 1px solid #eaeaea;
   padding: 16px;

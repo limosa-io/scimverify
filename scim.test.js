@@ -10,6 +10,7 @@ import runUserTests from './src/users.js';
 import runGroupTests from './src/groups.js';
 import runResourceTypeTests from './src/resourcetypes.js';
 import { runTests as runSchemaTests } from './src/schemas.js';
+import fs from 'fs/promises';
 
 // Function to process schemas and resource types
 function processResourcesAndSchemas(resourceTypes, schemas) {
@@ -27,10 +28,12 @@ function processResourcesAndSchemas(resourceTypes, schemas) {
 
     const groupSchema = schemas.find(e => e.id === groupSchemaId);
     const groupSchemaExtensions = schemas.filter(e => groupSchemaExtensionsIds && groupSchemaExtensionsIds.includes(e.id));
-        
-    runUserTests(userSchema, userSchemaExtensions, config);
 
-    if(config.resourceType == 'groups'){
+    if (config?.users?.enabled) {
+        runUserTests(userSchema, userSchemaExtensions, config);
+    }
+
+    if (config?.groups?.enabled) {
         runGroupTests(groupSchema, groupSchemaExtensions, config);
     }
 }
@@ -39,23 +42,27 @@ function processResourcesAndSchemas(resourceTypes, schemas) {
 const axiosInstance = getAxiosInstance();
 let resourceTypesPromise, schemasPromise;
 
-// Set up promises based on what's available in config
-if (config.resourceTypes) {
-    resourceTypesPromise = Promise.resolve(config.resourceTypes);
-} else {
-    
+if(config?.detectResourceTypes) {
     runResourceTypeTests(config);
     resourceTypesPromise = axiosInstance.get('/ResourceTypes')
         .then(response => response.data.Resources);
+} else {
+    // Import resource types from file since detectResourceTypes is false
+    resourceTypesPromise = fs.readFile(path.resolve('./src/resourceTypes.json'), 'utf8')
+        .then(data => JSON.parse(data).Resources)
+        .then(resourceTypes => Promise.resolve(resourceTypes));
 }
 
-if (config.schemas) {
-    schemasPromise = Promise.resolve(config.schemas);
-} else {
-    
+
+if (config?.detectSchema) {
     runSchemaTests(config);
     schemasPromise = axiosInstance.get('/Schemas')
         .then(response => response.data.Resources);
+} else {
+    // Import schemas from file since detectSchema is false
+    schemasPromise = fs.readFile(path.resolve('./src/schemas.json'), 'utf8')
+        .then(data => JSON.parse(data).Resources)
+        .then(schemas => Promise.resolve(schemas));
 }
 
 // Wait for both promises to resolve

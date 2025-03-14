@@ -1,0 +1,348 @@
+{
+    "totalResults": 3,
+    "itemsPerPage": 3,
+    "startIndex": 1,
+    "schemas": [
+      "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+    ],
+    "Resources": [
+      {
+        "schemas": [
+          "urn:ietf:params:scim:schemas:core:2.0:Schema"
+        ],
+        "id": "urn:ietf:params:scim:schemas:core:2.0:User",
+        "meta": {
+          "resourceType": "Schema",
+          "created": "2001-01-01T00:00:00+00:00",
+          "lastModified": "2001-01-01T00:00:00+00:00",
+          "version": "W/\"d90705dd9affd23c8a985bded8f593574aaffdcd\"",
+          "location": "https://api.scim.dev/scim/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:User"
+        },
+        "name": "User",
+        "attributes": [
+          {
+            "name": "userName",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": true,
+            "multiValued": false,
+            "caseExact": false
+          },
+          {
+            "name": "externalId",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": false,
+            "caseExact": false
+          },
+          {
+            "name": "name",
+            "type": "complex",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": false,
+            "caseExact": false,
+            "subAttributes": [
+              {
+                "name": "formatted",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "familyName",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "givenName",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              }
+            ]
+          },
+          {
+            "name": "active",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": false,
+            "caseExact": false
+          },
+          {
+            "name": "password",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "never",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": false,
+            "caseExact": false
+          },
+          {
+            "name": "emails",
+            "type": "complex",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": true,
+            "multiValued": true,
+            "caseExact": false,
+            "subAttributes": [
+              {
+                "name": "value",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": true,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "type",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "primary",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              }
+            ]
+          },
+          {
+            "name": "groups",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": true,
+            "caseExact": false,
+            "subAttributes": [
+              {
+                "name": "value",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "$ref",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "display",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              }
+            ]
+          },
+          {
+            "name": "roles",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": true,
+            "caseExact": false,
+            "subAttributes": [
+              {
+                "name": "value",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": true,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "display",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "type",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "primary",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "schemas": [
+          "urn:ietf:params:scim:schemas:core:2.0:Schema"
+        ],
+        "id": "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        "meta": {
+          "resourceType": "Schema",
+          "created": "2001-01-01T00:00:00+00:00",
+          "lastModified": "2001-01-01T00:00:00+00:00",
+          "version": "W/\"d90705dd9affd23c8a985bded8f593574aaffdcd\"",
+          "location": "https://api.scim.dev/scim/v2/Schemas/urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        },
+        "name": "User",
+        "attributes": [
+          {
+            "name": "employeeNumber",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": false,
+            "caseExact": false
+          }
+        ]
+      },
+      {
+        "schemas": [
+          "urn:ietf:params:scim:schemas:core:2.0:Schema"
+        ],
+        "id": "urn:ietf:params:scim:schemas:core:2.0:Group",
+        "meta": {
+          "resourceType": "Schema",
+          "created": "2001-01-01T00:00:00+00:00",
+          "lastModified": "2001-01-01T00:00:00+00:00",
+          "version": "W/\"d90705dd9affd23c8a985bded8f593574aaffdcd\"",
+          "location": "https://api.scim.dev/scim/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
+        },
+        "name": "Group",
+        "attributes": [
+          {
+            "name": "displayName",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": true,
+            "multiValued": false,
+            "caseExact": false
+          },
+          {
+            "name": "externalId",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": false,
+            "caseExact": false
+          },
+          {
+            "name": "members",
+            "type": "string",
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "server",
+            "required": false,
+            "multiValued": true,
+            "caseExact": false,
+            "subAttributes": [
+              {
+                "name": "value",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": true,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "$ref",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              },
+              {
+                "name": "display",
+                "type": "string",
+                "mutability": "readWrite",
+                "returned": "default",
+                "uniqueness": "server",
+                "required": false,
+                "multiValued": false,
+                "caseExact": false
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }

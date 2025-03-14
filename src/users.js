@@ -26,7 +26,7 @@ function createUserBody(user, schema, schemaExtensions) {
 function runTests(userSchema, userSchemaExtensions = [], configuration) {
     const axios = getAxiosInstance();
 
-    
+
 
     test.describe('Users', () => {
 
@@ -81,7 +81,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             const response = await axios.get('/Users/9876543210123456');
             assert.strictEqual(response.status, 404, 'A non-existing user should return 404');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should use the correct SCIM error schema');
-            
+
         });
 
         test('Paginates users using startIndex', async () => {
@@ -115,117 +115,131 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             });
         });
 
-        test('Creates a new user - Alternative 1', async () => {
-            // find required attributes from the schema
-            const newUser = {
-                schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
-                userName: `testuser${Math.floor(Math.random() * 10000)}`,
-                emails: [
-                    {
-                        value: 'barbara.jensen@example.com'
-                    }
-                ]
-            };
-
-            const response = await axios.post('/Users', newUser);
-            assert.strictEqual(response.status, 201, 'User creation should return 201 Created');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
-            assert.strictEqual(
-                response.data.userName || response.data['urn:ietf:params:scim:schemas:core:2.0:User'].userName,
-                newUser.userName,
-                'Created user should have the same userName as requested'
-            );
-
-            // Store the created user in shared state for further tests
-            sharedState.createdUser = response.data;
-        });
-
-        test('Creates a new user - Alternative 2', async () => {
-            // find required attributes from the schema
-            const userName = `testuser${Math.floor(Math.random() * 10000)}`;
-            const newUser = {
-                schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
-                'urn:ietf:params:scim:schemas:core:2.0:User': {
-                    userName: userName,
+        if (configuration?.users?.enableCreate) {
+            test('Creates a new user - Alternative 1', async () => {
+                // find required attributes from the schema
+                const newUser = {
+                    schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+                    userName: `testuser${Math.floor(Math.random() * 10000)}`,
                     emails: [
                         {
                             value: 'barbara.jensen@example.com'
                         }
                     ]
-                }
-            };
+                };
 
-            const response = await axios.post('/Users', newUser);
-            assert.strictEqual(response.status, 201, 'User creation should return 201 Created');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
-            assert.strictEqual(
-                response.data.userName || response.data['urn:ietf:params:scim:schemas:core:2.0:User'].userName,
-                userName,
-                'Created user should have the same userName as requested'
-            );
-            // Store the created user in shared state for further tests
-            sharedState.createdUser = response.data;
-        });
+                const response = await axios.post('/Users', newUser);
+                assert.strictEqual(response.status, 201, 'User creation should return 201 Created');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
+                assert.strictEqual(
+                    response.data.userName || response.data['urn:ietf:params:scim:schemas:core:2.0:User'].userName,
+                    newUser.userName,
+                    'Created user should have the same userName as requested'
+                );
 
-        test('Updates a user using PUT', async (t) => {
-            // TODO: get user from retrieved users, do not use created user
-            if (!sharedState.createdUser) {
-                t.skip('Previous test failed or no user created in shared state');
-                return;
-            }
+                // Store the created user in shared state for further tests
+                sharedState.createdUser = response.data;
+            });
 
-            // Update the created user
-            const updatedUser = {
-                ...sharedState.createdUser,
-                userName: `updated${sharedState.createdUser.userName}`
-            };
-
-            const updateResponse = await axios.put(`/Users/${sharedState.createdUser.id}`, updatedUser);
-            assert.strictEqual(updateResponse.status, 200, 'User update should return 200 OK');
-            assert.strictEqual(updateResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
-            assert.strictEqual(updateResponse.data.userName, updatedUser.userName, 'Updated user should have the new userName');
-
-            // Update the shared state with the updated user
-            sharedState.updatedUser = updateResponse.data;
-        });
-
-        test('Updates a user using PATCH', async (t) => {
-            // TODO: get user from retrieved users, do not use created user
-            // TODO: test other operations
-            if (!sharedState.updatedUser) {
-                t.skip('Previous test failed or no user updated in shared state');
-                return;
-            }
-
-            const patchData = {
-                schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
-                Operations: [
-                    {
-                        op: 'replace',
-                        path: 'userName',
-                        value: `patched${sharedState.updatedUser.userName}`
+            test('Creates a new user - Alternative 2', async () => {
+                // find required attributes from the schema
+                const userName = `testuser${Math.floor(Math.random() * 10000)}`;
+                const newUser = {
+                    schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+                    'urn:ietf:params:scim:schemas:core:2.0:User': {
+                        userName: userName,
+                        emails: [
+                            {
+                                value: 'barbara.jensen@example.com'
+                            }
+                        ]
                     }
-                ]
-            };
+                };
 
-            const patchResponse = await axios.patch(`/Users/${sharedState.updatedUser.id}`, patchData);
-            assert.strictEqual(patchResponse.status, 200, 'User patch should return 200 OK');
-            assert.strictEqual(patchResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
-            assert.strictEqual(patchResponse.data.userName, patchData.Operations[0].value, 'Patched user should have the new userName');
+                const response = await axios.post('/Users', newUser);
+                assert.strictEqual(response.status, 201, 'User creation should return 201 Created');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
+                assert.strictEqual(
+                    response.data.userName || response.data['urn:ietf:params:scim:schemas:core:2.0:User'].userName,
+                    userName,
+                    'Created user should have the same userName as requested'
+                );
+                // Store the created user in shared state for further tests
+                sharedState.createdUser = response.data;
+            });
+        }
 
-            // Update the shared state with the patched user
-            sharedState.patchedUser = patchResponse.data;
-        });
+        if (configuration?.users?.enableReplace) {
+            test('Updates a user using PUT', async (t) => {
+                // TODO: get user from retrieved users, do not use created user
+                if (!(sharedState.users?.[0])) {
+                    t.skip('Previous test failed or no user created in shared state');
+                    return;
+                }
 
-        test('Deletes a user', async (t) => {
-            if (!sharedState.patchedUser) {
-                t.skip('Previous test failed or no user patched in shared state');
-                return;
-            }
+                const user = sharedState.users[0];
 
-            const response = await axios.delete(`/Users/${sharedState.patchedUser.id}`);
-            assert.strictEqual(response.status, 204, 'User deletion should return 204 No Content');
-        });
+                // Update the created user
+                const updatedUser = {
+                    ...user,
+                    userName: `updated${user.userName}`
+                };
+
+                const updateResponse = await axios.put(`/Users/${user.id}`, updatedUser);
+                assert.strictEqual(updateResponse.status, 200, 'User update should return 200 OK');
+                assert.strictEqual(updateResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
+                assert.strictEqual(updateResponse.data.userName, updatedUser.userName, 'Updated user should have the new userName');
+
+                // Update the shared state with the updated user
+                sharedState.updatedUser = updateResponse.data;
+            });
+        }
+
+        if (configuration?.users?.enableUpdate) {
+            test('Updates a user using PATCH', async (t) => {
+
+                if (!(sharedState.users?.[0])) {
+                    t.skip('Previous test failed or no user created in shared state');
+                    return;
+                }
+
+                const user = sharedState.users[0];
+
+                const patchData = {
+                    schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+                    Operations: [
+                        {
+                            op: 'replace',
+                            path: 'userName',
+                            value: `patched${user.userName}`
+                        }
+                    ]
+                };
+
+                const patchResponse = await axios.patch(`/Users/${user.id}`, patchData);
+                assert.strictEqual(patchResponse.status, 200, 'User patch should return 200 OK');
+                assert.strictEqual(patchResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
+                assert.strictEqual(patchResponse.data.userName, patchData.Operations[0].value, 'Patched user should have the new userName');
+
+                // Update the shared state with the patched user
+                sharedState.patchedUser = patchResponse.data;
+            });
+        }
+
+        if (configuration?.users?.enableDelete) {
+            test('Deletes a user', async (t) => {
+
+                if (!(sharedState.users?.[0])) {
+                    t.skip('Previous test failed or no user created in shared state');
+                    return;
+                }
+
+                const user = sharedState.users[0];
+
+                const response = await axios.delete(`/Users/${user.id}`);
+                assert.strictEqual(response.status, 204, 'User deletion should return 204 No Content');
+            });
+        }
     });
 }
 

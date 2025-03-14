@@ -53,53 +53,57 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
 
         });
 
-        test('Creates a new group - Alternative 1', async () => {
-            const newGroup = {
-                schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
-                displayName: `Test Group ${Math.floor(Math.random() * 10000)}`
-            };
+        if (configuration?.groups?.enableCreate) {
+            test('Creates a new group - Alternative 1', async () => {
+                const newGroup = {
+                    schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+                    displayName: `Test Group ${Math.floor(Math.random() * 10000)}`
+                };
 
-            const response = await axios.post('/Groups', newGroup);
-            assert.strictEqual(response.status, 201, 'POST /Groups should return status code 201 when creating a new group');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
-            assert.strictEqual(response.data.displayName, newGroup.displayName, 'Created group should have the same displayName as requested');
+                const response = await axios.post('/Groups', newGroup);
+                assert.strictEqual(response.status, 201, 'POST /Groups should return status code 201 when creating a new group');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
+                assert.strictEqual(response.data.displayName, newGroup.displayName, 'Created group should have the same displayName as requested');
 
-            // Store the created group in shared state for further tests
-            sharedState.createdGroup = response.data;
-        });
+                // Store the created group in shared state for further tests
+                sharedState.createdGroup = response.data;
+            });
 
-        test('Creates a new group - Alternative 2', async () => {
 
-            const groupName = `Test Group ${Math.floor(Math.random() * 10000)}`;
-            const newGroup = {
-                schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
-                'urn:ietf:params:scim:schemas:core:2.0:Group': {
-                    displayName: groupName
-                }
-            };
+            test('Creates a new group - Alternative 2', async () => {
 
-            const response = await axios.post('/Groups', newGroup);
-            assert.strictEqual(response.status, 201, 'POST /Groups should return status code 201 when creating a new group');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
-            assert.strictEqual(response.data.displayName, groupName, 'Created group should have the same displayName as requested');
+                const groupName = `Test Group ${Math.floor(Math.random() * 10000)}`;
+                const newGroup = {
+                    schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+                    'urn:ietf:params:scim:schemas:core:2.0:Group': {
+                        displayName: groupName
+                    }
+                };
 
-            // Store the created group in shared state for further tests
-            sharedState.createdGroup = response.data;
-        });
+                const response = await axios.post('/Groups', newGroup);
+                assert.strictEqual(response.status, 201, 'POST /Groups should return status code 201 when creating a new group');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
+                assert.strictEqual(response.data.displayName, groupName, 'Created group should have the same displayName as requested');
 
-        test('Returns errors when creating an invalid group', async () => {
-            // displayName is always required
-            const newGroup = {
-                schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
-            };
+                // Store the created group in shared state for further tests
+                sharedState.createdGroup = response.data;
+            });
 
-            const response = await axios.post('/Groups', newGroup);
-            assert.strictEqual(response.status, 400, 'Creating an invalid group should return status code 400');
-            assert.strictEqual(response.data.scimType, "invalidSyntax", 'Error should have scimType set to invalidSyntax');
-            assert.strictEqual(response.data.status, 400, 'Error response status should match HTTP status code');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should contain the correct error schema');
 
-        });
+            test('Returns errors when creating an invalid group', async () => {
+                // displayName is always required
+                const newGroup = {
+                    schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+                };
+
+                const response = await axios.post('/Groups', newGroup);
+                assert.strictEqual(response.status, 400, 'Creating an invalid group should return status code 400');
+                assert.strictEqual(response.data.scimType, "invalidSyntax", 'Error should have scimType set to invalidSyntax');
+                assert.strictEqual(response.data.status, 400, 'Error response status should match HTTP status code');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should contain the correct error schema');
+
+            });
+        }
 
         test('Assigns a user to a group', async () => {
             // Retrieve a user
