@@ -29,7 +29,10 @@ function processResourcesAndSchemas(resourceTypes, schemas) {
     const groupSchemaExtensions = schemas.filter(e => groupSchemaExtensionsIds && groupSchemaExtensionsIds.includes(e.id));
         
     runUserTests(userSchema, userSchemaExtensions, config);
-    runGroupTests(groupSchema, groupSchemaExtensions, config);
+
+    if(config.resourceType == 'groups'){
+        runGroupTests(groupSchema, groupSchemaExtensions, config);
+    }
 }
 
 // Initialize what we have and what we need to fetch

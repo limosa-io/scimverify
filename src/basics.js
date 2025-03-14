@@ -6,7 +6,7 @@ import axios from 'axios';
 function runTests() {
     const config = getConfig();
     
-    test.describe('SCIM Base URL Tests', function() {
+    test.describe('Basic tests', function() {
         test('Base URL should not contain any query parameters', function() {
             const baseUrl = config.baseURL;
             const url = new URL(baseUrl);

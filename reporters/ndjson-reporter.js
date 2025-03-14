@@ -26,16 +26,19 @@ export function ndjson() {
           }
           
           // For assertion errors, the third parameter is the message
-          if (error.cause.code === 'ERR_ASSERTION' && !eventWithTimestamp.data.details.assertionMessage) {
+            if (error.cause.code === 'ERR_ASSERTION' && !eventWithTimestamp.data.details.assertionMessage) {
             // Extract the assertion message which is often passed as the third parameter
             const assertionArgs = error.cause.stack?.match(/assert\.strictEqual\([^,]+,[^,]+,\s*['"]([^'"]+)['"]\)/);
             if (assertionArgs && assertionArgs[1]) {
               eventWithTimestamp.data.details.assertionMessage = assertionArgs[1];
             } else {
               // Try to extract from just the message if available
-              eventWithTimestamp.data.details.assertionMessage = error.cause.message;
+              const message = error.cause.message;
+              // Extract only the part before \n\n if it exists
+              const cleanMessage = message.split('\n\n')[0];
+              eventWithTimestamp.data.details.assertionMessage = cleanMessage;
             }
-          }
+            }
         }
       }
       

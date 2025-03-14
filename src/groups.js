@@ -10,13 +10,13 @@ const sharedState = {};
 function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
     const axios = getAxiosInstance();
 
-    test('groupSchema contains attribute displayName and it is marked as required', () => {
-        const displayNameAttribute = groupSchema.attributes.find(attr => attr.name === 'displayName');
-        assert.ok(displayNameAttribute, 'displayName attribute should exist in groupSchema');
-        assert.strictEqual(displayNameAttribute.required, true, 'displayName attribute should be marked as required');
-    });
+    test.describe('Groups', () => {
+        test('groupSchema contains attribute displayName and it is marked as required', () => {
+            const displayNameAttribute = groupSchema.attributes.find(attr => attr.name === 'displayName');
+            assert.ok(displayNameAttribute, 'displayName attribute should exist in groupSchema');
+            assert.strictEqual(displayNameAttribute.required, true, 'displayName attribute should be marked as required');
+        });
 
-    test.describe('/Groups', () => {
         // TODO: Retrieve all groups, ensure that for creating a new group an unique name is used...
         test('Retrieves a list of groups', async (t) => {
             const response = await axios.get('/Groups');

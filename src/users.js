@@ -26,14 +26,15 @@ function createUserBody(user, schema, schemaExtensions) {
 function runTests(userSchema, userSchemaExtensions = [], configuration) {
     const axios = getAxiosInstance();
 
-    test('userSchema contains attribute userName and it is marked as required', () => {
-        const userNameAttribute = userSchema.attributes.find(attr => attr.name === 'userName');
-        assert.ok(userNameAttribute, 'userName attribute should exist in userSchema');
-        assert.strictEqual(userNameAttribute.required, true, 'userName attribute should be marked as required');
-    });
+    
 
+    test.describe('Users', () => {
 
-    test.describe('/Users', () => {
+        test('userSchema contains attribute userName and it is marked as required', () => {
+            const userNameAttribute = userSchema.attributes.find(attr => attr.name === 'userName');
+            assert.ok(userNameAttribute, 'userName attribute should exist in userSchema');
+            assert.strictEqual(userNameAttribute.required, true, 'userName attribute should be marked as required');
+        });
 
         // before all, ensure schema is set
         test.beforeEach(() => {

@@ -4,17 +4,19 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+let configFromEnv = {};
+try {
+    if (process.env.CONFIG) {
+        configFromEnv = JSON.parse(process.env.CONFIG);
+    }
+} catch (e) {
+    console.warn('Invalid JSON in CONFIG environment variable');
+}
+
 let defaultConfig = {
     baseURL: process.env.BASE_URL,
     token: process.env.TOKEN,
-    config: (() => {
-        try {
-            return JSON.parse(process.env.CONFIG);
-        } catch (e) {
-            console.warn('Invalid JSON in CONFIG environment variable');
-            return {};
-        }
-    })()
+    ...configFromEnv
 };
 
 if (!defaultConfig.baseURL || !defaultConfig.token) {

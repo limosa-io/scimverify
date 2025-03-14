@@ -5,7 +5,7 @@ import { getAxiosInstance } from './helpers.js';
 function runTests(configuration) {
     const axios = getAxiosInstance();
 
-    test.describe('/ResourceTypes', () => {
+    test.describe('ResourceTypes', () => {
         test('Retrieves resource types', async () => {
             const response = await axios.get('/ResourceTypes');
             assert.strictEqual(response.status, 200, 'ResourceTypes endpoint should return status code 200');
