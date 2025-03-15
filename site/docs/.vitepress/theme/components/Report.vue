@@ -103,12 +103,15 @@
           </div>
         </div>
       </div>
-
+      
+      <!--
       <div class="form-group">
         <label for="config">Optional JSON Configuration:</label>
         <textarea id="config" v-model="config" readonly></textarea>
       </div>
+      -->
       <button type="submit">Run Tests</button>
+
     </form>
   </div>
 
@@ -127,6 +130,11 @@
           {{ r.getLatest().data?.details?.assertionMessage?.replace('\n\n', ': ') }}
         </p>
         <p v-if="r.skipped()">This test was skipped because it depends on a prerequisite test that failed.</p>
+
+        <p v-for="msg in r?.messages.filter(m => m.type === 'test:diagnotic')">
+          {{ msg.data.message }}
+        </p>
+        
       </details>
     </div>
   </div>

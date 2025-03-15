@@ -1,6 +1,9 @@
 import axios from 'axios';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import test from 'node:test';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -23,7 +26,13 @@ if (!defaultConfig.baseURL || !defaultConfig.token) {
     throw new Error('BASE_URL and TOKEN must be set in the environment variables');
 }
 
-export function getAxiosInstance(config = defaultConfig) {
+/**
+ * 
+ * @param {*} config 
+ * @param TestContext testContext 
+ * @returns 
+ */
+export function getAxiosInstance(config = defaultConfig, testContext = null) {
     const instance = axios.create({
         baseURL: config.baseURL,
         headers: {
@@ -35,30 +44,46 @@ export function getAxiosInstance(config = defaultConfig) {
         }
     });
 
+    const t = testContext;
+
     // Add request interceptor to log the raw HTTP request
     instance.interceptors.request.use(request => {
-        console.log('HTTP Request:');
-        console.log(`${request.method.toUpperCase()} ${request.baseURL}${request.url}`);
-        console.log('Headers:', JSON.stringify(request.headers, null, 2));
-        if (request.data) {
-            console.log('Body:', JSON.stringify(request.data, null, 2));
-        }
+        const requestLog = {
+            type: 'request',
+            method: request.method?.toUpperCase(),
+            url: `${request.baseURL}${request.url}`,
+            headers: request.headers,
+            body: request.data || null
+        };
+        
+        t?.diagnostic(requestLog);
+
         return request;
     });
 
     // Add response interceptor to log the raw HTTP response
     instance.interceptors.response.use(response => {
-        console.log('HTTP Response:');
-        console.log(`Status: ${response.status} ${response.statusText}`);
-        console.log('Headers:', JSON.stringify(response.headers, null, 2));
-        console.log('Body:', JSON.stringify(response.data, null, 2));
+        const responseLog = {
+            type: 'response',
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+            body: response.data
+        };
+        
+        t?.diagnostic(responseLog)
         return response;
     }, error => {
         if (error.response) {
-            console.log('HTTP Error Response:');
-            console.log(`Status: ${error.response.status} ${error.response.statusText}`);
-            console.log('Headers:', JSON.stringify(error.response.headers, null, 2));
-            console.log('Body:', JSON.stringify(error.response.data, null, 2));
+            const errorLog = {
+                type: 'error',
+                status: error.response.status,
+                statusText: error.response.statusText,
+                headers: error.response.headers,
+                body: error.response.data
+            };
+            
+            t?.diagnostic(errorLog)
         }
         return Promise.reject(error);
     });
@@ -67,4 +92,20 @@ export function getAxiosInstance(config = defaultConfig) {
 
 export function getConfig() {
     return defaultConfig;
+}
+
+/**
+ * Creates a test wrapper that provides an axios instance with test context
+ * @param {string} name - The test name
+ * @param {function} testFn - The test function to execute
+ * @returns {function} - The wrapped test function
+ */
+export function testWithAxios(name, testFn) {
+    return test(name, async function(t) {
+        // Create a new axios instance for this specific test
+        const testAxios = getAxiosInstance(getConfig(), t);
+        
+        // Call original test function with axios instance and test context
+        return testFn.apply(this, [testAxios, t]);
+    });
 }

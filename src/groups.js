@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { getAxiosInstance } from './helpers.js';
+import { getAxiosInstance, testWithAxios } from './helpers.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -8,8 +8,6 @@ dotenv.config();
 const sharedState = {};
 
 function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
-    const axios = getAxiosInstance();
-
     test.describe('Groups', () => {
         test('groupSchema contains attribute displayName and it is marked as required', () => {
             const displayNameAttribute = groupSchema.attributes.find(attr => attr.name === 'displayName');
@@ -18,7 +16,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
         });
 
         // TODO: Retrieve all groups, ensure that for creating a new group an unique name is used...
-        test('Retrieves a list of groups', async (t) => {
+        testWithAxios('Retrieves a list of groups', async (axios, t) => {
             const response = await axios.get('/Groups');
             assert.strictEqual(response.status, 200, 'GET /Groups should return status code 200');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should contain the correct schema');
@@ -28,7 +26,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             sharedState.groups = response.data.Resources;
         });
 
-        test('Retrieves a single group', async (t) => {
+        testWithAxios('Retrieves a single group', async (axios, t) => {
             if (!sharedState.groups || sharedState.groups.length === 0) {
                 t.skip('Previous test failed or no groups found in shared state');
                 return;
@@ -46,7 +44,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             );
         });
 
-        test('Handles retrieval of a non-existing group', async () => {
+        testWithAxios('Handles retrieval of a non-existing group', async (axios) => {
             const response = await axios.get('/Groups/9876543210123456');
             assert.strictEqual(response.status, 404, 'A non-existing group should return 404');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should contain the correct error schema');
@@ -54,7 +52,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
         });
 
         if (configuration?.groups?.enableCreate) {
-            test('Creates a new group - Alternative 1', async () => {
+            testWithAxios('Creates a new group - Alternative 1', async (axios) => {
                 const newGroup = {
                     schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
                     displayName: `Test Group ${Math.floor(Math.random() * 10000)}`
@@ -70,7 +68,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             });
 
 
-            test('Creates a new group - Alternative 2', async () => {
+            testWithAxios('Creates a new group - Alternative 2', async (axios) => {
 
                 const groupName = `Test Group ${Math.floor(Math.random() * 10000)}`;
                 const newGroup = {
@@ -90,7 +88,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             });
 
 
-            test('Returns errors when creating an invalid group', async () => {
+            testWithAxios('Returns errors when creating an invalid group', async (axios) => {
                 // displayName is always required
                 const newGroup = {
                     schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
@@ -105,7 +103,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             });
         }
 
-        test('Assigns a user to a group', async () => {
+        testWithAxios('Assigns a user to a group', async (axios) => {
             // Retrieve a user
             const userResponse = await axios.get('/Users');
             assert.strictEqual(userResponse.status, 200, 'GET /Users should return status code 200');

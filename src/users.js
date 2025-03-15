@@ -1,6 +1,6 @@
 import test, { skip } from 'node:test';
 import assert from 'node:assert';
-import { getAxiosInstance } from './helpers.js';
+import { getAxiosInstance, testWithAxios } from './helpers.js';
 
 const sharedState = {};
 
@@ -24,10 +24,6 @@ function createUserBody(user, schema, schemaExtensions) {
 }
 
 function runTests(userSchema, userSchemaExtensions = [], configuration) {
-    const axios = getAxiosInstance();
-
-
-
     test.describe('Users', () => {
 
         test('userSchema contains attribute userName and it is marked as required', () => {
@@ -44,7 +40,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             }
         });
 
-        test('Retrieves a list of users', async (t) => {
+        testWithAxios('Retrieves a list of users', async (axios, t) => {
             const response = await axios.get('/Users');
             assert.strictEqual(response.status, 200, 'List users request should return 200 OK');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
@@ -59,7 +55,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             });
         });
 
-        test('Retrieves a single user', async (t) => {
+        testWithAxios('Retrieves a single user', async (axios, t) => {
             if (!sharedState.users || sharedState.users.length === 0) {
                 t.skip('Previous test failed or no users found in shared state');
                 return;
@@ -77,14 +73,14 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             );
         });
 
-        test('Handles retrieval of a non-existing user', async () => {
+        testWithAxios('Handles retrieval of a non-existing user', async (axios) => {
             const response = await axios.get('/Users/9876543210123456');
             assert.strictEqual(response.status, 404, 'A non-existing user should return 404');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should use the correct SCIM error schema');
 
         });
 
-        test('Paginates users using startIndex', async () => {
+        testWithAxios('Paginates users using startIndex', async (axios) => {
             const startIndex = 20;
             const count = 5;
             const response = await axios.get(`/Users?startIndex=${startIndex}&count=${count}`);
@@ -94,7 +90,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             assert.strictEqual(response.data.startIndex, startIndex, 'startIndex should match the requested startIndex');
         });
 
-        test('Sorts users by userName', async () => {
+        testWithAxios('Sorts users by userName', async (axios) => {
             const response = await axios.get('/Users?sortBy=userName');
             assert.strictEqual(response.status, 200, 'Sort request should return 200 OK');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
@@ -104,7 +100,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             }
         });
 
-        test('Retrieves only userName attributes', async () => {
+        testWithAxios('Retrieves only userName attributes', async (axios) => {
             const attributes = 'userName';
             const response = await axios.get(`/Users?attributes=${attributes}`);
             assert.strictEqual(response.status, 200, 'Filtered attributes request should return 200 OK');
@@ -116,7 +112,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         });
 
         if (configuration?.users?.enableCreate) {
-            test('Creates a new user - Alternative 1', async () => {
+            testWithAxios('Creates a new user - Alternative 1', async (axios) => {
                 // find required attributes from the schema
                 const newUser = {
                     schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
@@ -141,7 +137,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                 sharedState.createdUser = response.data;
             });
 
-            test('Creates a new user - Alternative 2', async () => {
+            testWithAxios('Creates a new user - Alternative 2', async (axios) => {
                 // find required attributes from the schema
                 const userName = `testuser${Math.floor(Math.random() * 10000)}`;
                 const newUser = {
@@ -170,7 +166,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         }
 
         if (configuration?.users?.enableReplace) {
-            test('Updates a user using PUT', async (t) => {
+            testWithAxios('Updates a user using PUT', async (axios, t) => {
                 // TODO: get user from retrieved users, do not use created user
                 if (!(sharedState.users?.[0])) {
                     t.skip('Previous test failed or no user created in shared state');
@@ -196,7 +192,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         }
 
         if (configuration?.users?.enableUpdate) {
-            test('Updates a user using PATCH', async (t) => {
+            testWithAxios('Updates a user using PATCH', async (axios, t) => {
 
                 if (!(sharedState.users?.[0])) {
                     t.skip('Previous test failed or no user created in shared state');
@@ -227,7 +223,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         }
 
         if (configuration?.users?.enableDelete) {
-            test('Deletes a user', async (t) => {
+            testWithAxios('Deletes a user', async (axios, t) => {
 
                 if (!(sharedState.users?.[0])) {
                     t.skip('Previous test failed or no user created in shared state');
