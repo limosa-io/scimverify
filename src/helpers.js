@@ -36,7 +36,8 @@ export function getAxiosInstance(config = defaultConfig, testContext = null) {
     const instance = axios.create({
         baseURL: config.baseURL,
         headers: {
-            'Authorization': `Bearer ${config.token}`
+            'Authorization': `Bearer ${config.token}`,
+            'User-Agent': 'veriyf.scim.dev'
         },
         validateStatus: function (status) {
             // Return true for any status code (don't throw errors)
@@ -101,6 +102,8 @@ export function getConfig() {
  * @returns {function} - The wrapped test function
  */
 export function testWithAxios(name, testFn) {
+    // Get the caller's information to preserve the original file location in test reports
+    
     return test(name, async function(t) {
         // Create a new axios instance for this specific test
         const testAxios = getAxiosInstance(getConfig(), t);

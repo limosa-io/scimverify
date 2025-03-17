@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { getConfig, testWithAxios } from './helpers.js';
+import { getConfig, getAxiosInstance } from './helpers.js';
+import { get } from 'node:http';
 
 function runTests() {
     const config = getConfig();
@@ -13,7 +14,8 @@ function runTests() {
         });
 
         // ensure base url is reachable with axios, any return status code is valid
-        testWithAxios('Base URL should be reachable', async function(axios, t) {
+        test('Base URL should be reachable', async function(t) {
+            const axios = getAxiosInstance(config, t);
             const baseUrl = config.baseURL;
             try {
                 await axios.get(baseUrl);
@@ -24,7 +26,8 @@ function runTests() {
             }
         });
 
-        testWithAxios('Authentication should be required for /Users', async function(axios, t) {
+        test('Authentication should be required for /Users', async function(t) {
+            const axios = getAxiosInstance(config, t);
             const usersUrl = `${config.baseURL}/Users`;
             const response = await axios.get(usersUrl);
             assert.ok([401, 403].includes(response.status), 'Expected 401 Unauthorized or 403 Forbidden status'); 

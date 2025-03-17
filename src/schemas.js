@@ -3,10 +3,12 @@ import assert from 'node:assert';
 import { getAxiosInstance } from './helpers.js';
 
 export function runTests(configuration) {
-    const axios = getAxiosInstance();
+    
 
     test.describe('Schemas', () => {
-        test('Retrieves schemas', async () => {
+        test('Retrieves schemas', async (t) => {
+            const axios = getAxiosInstance(configuration, t);
+
             const response = await axios.get('/Schemas');
             assert.strictEqual(response.status, 200);
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse');

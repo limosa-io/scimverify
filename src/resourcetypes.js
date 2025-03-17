@@ -3,10 +3,10 @@ import assert from 'node:assert';
 import { getAxiosInstance } from './helpers.js';
 
 function runTests(configuration) {
-    const axios = getAxiosInstance();
 
     test.describe('ResourceTypes', () => {
-        test('Retrieves resource types', async () => {
+        test('Retrieves resource types', async (t) => {
+            const axios = getAxiosInstance(configuration, t);
             const response = await axios.get('/ResourceTypes');
             assert.strictEqual(response.status, 200, 'ResourceTypes endpoint should return status code 200');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should have the correct ListResponse schema');

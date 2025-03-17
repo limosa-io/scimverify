@@ -1,27 +1,31 @@
 <template>
   <div class="test-form">
     <form @submit.prevent="runTests">
+      <!-- SCIM Base URL -->
       <div class="form-group">
         <label for="url">SCIM Base URL:</label>
-        <input type="url" id="url" v-model="url" required>
-      </div>
-      <div class="form-group">
-        <label for="token">Authorization Token:</label>
-        <input type="text" id="token" v-model="token" required>
+        <input type="url" id="url" v-model="url" required placeholder="Enter the SCIM Base URL">
       </div>
 
+      <!-- Authorization Token -->
+      <div class="form-group">
+        <label for="token">Authorization Token:</label>
+        <input type="text" id="token" v-model="token" required placeholder="Enter the Authorization Token">
+      </div>
+
+      <!-- Detection Options -->
       <div class="form-group">
         <div class="option">
           <input type="checkbox" id="detect-schema" v-model="model.detectSchema">
           <label for="detect-schema">Detect Schema</label>
         </div>
-        
         <div class="option">
           <input type="checkbox" id="detect-resource-types" v-model="model.detectResourceTypes">
           <label for="detect-resource-types">Detect Resource Types</label>
         </div>
       </div>
 
+      <!-- Resource Type Tabs -->
       <div class="form-group">
         <label>Resource Type:</label>
         <div class="tabs">
@@ -31,71 +35,59 @@
           <div class="tab" :class="{ active: activeTab === 'Groups' }" @click="setResourceType('Groups')">
             Groups
           </div>
-          <!-- <div class="tab" :class="{ active: activeTab === 'Custom' }" @click="setResourceType('Custom')">
-            Custom
-          </div> -->
         </div>
 
+        <!-- Users Tab Content -->
         <div v-if="activeTab === 'Users'" class="tab-content">
           <div class="option">
             <input type="checkbox" id="enable-users" v-model="model.users.enabled">
-            <label for="enable-users">Enable Users testing</label>
+            <label for="enable-users">Enable Users Testing</label>
           </div>
-
           <div class="option">
             <input type="checkbox" id="enable-users-create" v-model="model.users.enableCreate">
             <label for="enable-users-create">Enable Create</label>
           </div>
-          
           <div class="option">
             <input type="checkbox" id="enable-users-replace" v-model="model.users.enableReplace">
             <label for="enable-users-replace">Enable Replace (PUT)</label>
           </div>
-          
           <div class="option">
             <input type="checkbox" id="enable-users-update" v-model="model.users.enableUpdate">
             <label for="enable-users-update">Enable Update (PATCH)</label>
           </div>
-          
           <div class="option">
             <input type="checkbox" id="enable-users-delete" v-model="model.users.enableDelete">
             <label for="enable-users-delete">Enable Delete</label>
           </div>
-
           <div class="option">
             <label for="users-sort-attributes">Sort Attributes to Test:</label>
             <input type="text" id="users-sort-attributes" v-model="userSortAttributesText"
               placeholder="Comma-separated attributes" @change="updateUserSortAttributes">
           </div>
-
         </div>
 
+        <!-- Groups Tab Content -->
         <div v-if="activeTab === 'Groups'" class="tab-content">
           <div class="option">
             <input type="checkbox" id="enable-groups" v-model="model.groups.enabled">
-            <label for="enable-groups">Enable Groups testing</label>
+            <label for="enable-groups">Enable Groups Testing</label>
           </div>
-          
           <div class="option">
             <input type="checkbox" id="enable-groups-create" v-model="model.groups.enableCreate">
             <label for="enable-groups-create">Enable Create</label>
           </div>
-          
           <div class="option">
             <input type="checkbox" id="enable-groups-replace" v-model="model.groups.enableReplace">
             <label for="enable-groups-replace">Enable Replace (PUT)</label>
           </div>
-          
           <div class="option">
             <input type="checkbox" id="enable-groups-update" v-model="model.groups.enableUpdate">
             <label for="enable-groups-update">Enable Update (PATCH)</label>
           </div>
-          
           <div class="option">
             <input type="checkbox" id="enable-groups-delete" v-model="model.groups.enableDelete">
             <label for="enable-groups-delete">Enable Delete</label>
           </div>
-          
           <div class="option">
             <label for="groups-sort-attributes">Sort Attributes to Test:</label>
             <input type="text" id="groups-sort-attributes" v-model="groupSortAttributesText"
@@ -103,22 +95,19 @@
           </div>
         </div>
       </div>
-      
-      <!--
-      <div class="form-group">
-        <label for="config">Optional JSON Configuration:</label>
-        <textarea id="config" v-model="config" readonly></textarea>
-      </div>
-      -->
-      <button type="submit">Run Tests</button>
 
+      <!-- Run Tests Button -->
+      <button type="submit">Run Tests</button>
     </form>
   </div>
 
+  <!-- Test Output Section -->
   <div class="test-output">
+    <h2>Test Results</h2>
     <div
       v-for="testFile in testFiles.filter(f => f.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type)).length > 0)"
       class="file-item">
+      <h3>{{ testFile.file }}</h3>
       <details v-for="r in testFile.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type))"
         class="result-item">
         <summary class="result-value" :class="[r.getLatest().type, r.skipped() ? 'test:skip' : '']">
@@ -127,14 +116,54 @@
           </component>
         </summary>
         <p v-if="r.getLatest().type == 'test:fail' && !r.skipped()">
-          {{ r.getLatest().data?.details?.assertionMessage?.replace('\n\n', ': ') }}
+          <strong>Error:</strong> {{ r.getLatest().data?.details?.assertionMessage?.replace('\n\n', ': ') }}
         </p>
         <p v-if="r.skipped()">This test was skipped because it depends on a prerequisite test that failed.</p>
 
-        <p v-for="msg in r?.messages.filter(m => m.type === 'test:diagnotic')">
-          {{ msg.data.message }}
-        </p>
-        
+        <!-- Diagnostic Messages -->
+        <div v-for="msg in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'request')" class="diagnostic-tabs">
+          <div class="tabs">
+            <div
+              class="tab"
+              :class="{ active: getActiveDiagnosticTab(msg.data.line) === 'request' }"
+              @click="setDiagnosticTab(msg.data.line, 'request')"
+            >
+              Request
+            </div>
+            <div
+              class="tab"
+              :class="{ active: getActiveDiagnosticTab(msg.data.line) === 'response' }"
+              @click="setDiagnosticTab(msg.data.line, 'response')"
+            >
+              Response
+            </div>
+          </div>
+
+            <div v-if="getActiveDiagnosticTab(msg.data.line) === 'request'" class="tab-content">
+            <div class="http-request">
+              <div class="request-line"><strong>{{ msg.data.message.method }}</strong> {{ msg.data.message.url }} HTTP/1.1</div>
+              <div class="request-headers">
+              <div v-for="(value, key) in msg.data.message.headers" :key="key">
+                <strong>{{ key }}:</strong> {{ value }}
+              </div>
+              </div>
+              <div v-if="msg.data.message.body" class="request-body">
+              <pre>{{ formatJSON(msg.data.message.body) }}</pre>
+              </div>
+            </div>
+            </div>
+
+          <div v-for="response in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'response' && m.data.line == msg.data.line)" v-if="getActiveDiagnosticTab(msg.data.line) === 'response'" class="tab-content">
+            <div>HTTP {{ response.data.message.status }} {{ response.data.message.statusText }}</div>
+            <div v-if="response.data.message.headers">
+              <span v-for="(value, key) in response.data.message.headers" :key="key">
+              <strong>{{ key }}:</strong> {{ value }}<br />
+              </span>
+            </div>
+            <pre v-else>No headers</pre><br />
+            <div>{{ formatJSON(response.data.message.body) }}</div>
+          </div>
+        </div>
       </details>
     </div>
   </div>
@@ -155,6 +184,13 @@ class TestResult {
     if (this.messages.length === 0) {
       return null;
     }
+    // Find the latest message that is not of type 'test:diagnostic'
+    for (let i = this.messages.length - 1; i >= 0; i--) {
+      if (this.messages[i].type !== 'test:diagnostic') {
+      return this.messages[i];
+      }
+    }
+    // If all messages are diagnostic, return the latest one
     return this.messages[this.messages.length - 1];
   }
 
@@ -220,7 +256,10 @@ export default {
       // Text fields for sort attributes
       userSortAttributesText: 'userName',
       groupSortAttributesText: 'displayName',
-      customSortAttributesText: ''
+      customSortAttributesText: '',
+      
+      // Track active diagnostic tabs per message
+      diagnosticTabs: new Map(),
     };
   },
   created() {
@@ -425,9 +464,23 @@ export default {
 
       this.result.clear();
       this.testFiles = [];
+      this.diagnosticTabs.clear(); // Clear previous tab states
       this.socket.emit('start-tests', configObject);
-    }
-  }
+    },
+    formatJSON(json) {
+      return JSON.stringify(json, null, 2);
+    },
+    // Set active tab for a specific diagnostic message
+    setDiagnosticTab(messageId, tabName) {
+      this.diagnosticTabs.set(messageId, tabName);
+    },
+    
+    // Get active tab for a specific diagnostic message
+    getActiveDiagnosticTab(messageId) {
+      // Default to 'response' if not set
+      return this.diagnosticTabs.get(messageId) || 'response';
+    },
+  },
 };
 </script>
 
@@ -746,5 +799,85 @@ details[open]>summary~* {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Add spacing and better alignment for test results */
+.test-output h2 {
+  margin-bottom: 16px;
+  font-size: 1.5em;
+  color: #2d3748;
+}
+
+.file-item h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 1.2em;
+  color: #4a5568;
+}
+
+.result-item p {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background-color: #f7fafc;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.95em;
+  line-height: 1.5;
+  color: #4a5568;
+}
+
+.result-item p strong {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* Tabs for diagnostic messages */
+.diagnostic-tabs {
+  margin-top: 16px;
+}
+
+.diagnostic-tabs .tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 8px;
+}
+
+.diagnostic-tabs .tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  margin-bottom: -1px;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.2s ease;
+  background-color: #f8fafc;
+  font-weight: 500;
+  user-select: none;
+}
+
+.diagnostic-tabs .tab:hover {
+  background-color: #edf2f7;
+  color: #3182ce;
+}
+
+.diagnostic-tabs .tab.active {
+  background-color: #fff;
+  border-color: #ddd;
+  border-bottom-color: white;
+  font-weight: 600;
+  color: #3182ce;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.diagnostic-tabs .tab-content {
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #4a5568;
 }
 </style>
