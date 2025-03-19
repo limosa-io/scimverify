@@ -14,27 +14,30 @@
           <input type="text" id="token" v-model="token" required placeholder="Enter the Authorization Token">
         </div>
 
-        <!-- Detection Options -->
-        <div class="form-group">
-          <div class="option">
-            <input type="checkbox" id="detect-schema" v-model="model.detectSchema">
-            <label for="detect-schema">Detect Schema</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="detect-resource-types" v-model="model.detectResourceTypes">
-            <label for="detect-resource-types">Detect Resource Types</label>
-          </div>
-        </div>
-
         <!-- Resource Type Tabs -->
         <div class="form-group">
           <label>Resource Type:</label>
           <div class="tabs">
+            <div class="tab" :class="{ active: activeTab === 'Config' }" @click="setResourceType('Config')">
+              Config
+            </div>
             <div class="tab" :class="{ active: activeTab === 'Users' }" @click="setResourceType('Users')">
               Users
             </div>
             <div class="tab" :class="{ active: activeTab === 'Groups' }" @click="setResourceType('Groups')">
               Groups
+            </div>
+          </div>
+
+          <!-- Config Tab Content -->
+          <div v-if="activeTab === 'Config'" class="tab-content">
+            <div class="option">
+              <input type="checkbox" id="detect-schema" v-model="model.detectSchema">
+              <label for="detect-schema">Detect Schema</label>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="detect-resource-types" v-model="model.detectResourceTypes">
+              <label for="detect-resource-types">Detect Resource Types</label>
             </div>
           </div>
 
@@ -53,7 +56,7 @@
               <label for="enable-users-replace">Put</label>
             </div>
             <div class="option" v-if="model.users.enableReplace">
-              <label for="users-replace-id">User ID for Replace (optional):</label>
+              <label for="users-replace-id">User ID for Replace:</label>
               <input type="text" id="users-replace-id" v-model="model.users.replaceId" 
               placeholder="Leave empty to auto-detect">
             </div>
@@ -62,7 +65,7 @@
               <label for="enable-users-update">Patch</label>
             </div>
             <div class="option" v-if="model.users.enableUpdate">
-              <label for="users-replace-id">User ID for Patch (optional):</label>
+              <label for="users-replace-id">User ID for Patch:</label>
               <input type="text" id="users-replace-id" v-model="model.users.updateId" 
               placeholder="Leave empty to auto-detect">
             </div>
@@ -81,23 +84,23 @@
           <div v-if="activeTab === 'Groups'" class="tab-content">
             <div class="option">
               <input type="checkbox" id="enable-groups" v-model="model.groups.enabled">
-              <label for="enable-groups">Enable Groups Testing</label>
+              <label for="enable-groups">Get</label>
             </div>
             <div class="option">
               <input type="checkbox" id="enable-groups-create" v-model="model.groups.enableCreate">
-              <label for="enable-groups-create">Enable Create</label>
+              <label for="enable-groups-create">Create</label>
             </div>
             <div class="option">
               <input type="checkbox" id="enable-groups-replace" v-model="model.groups.enableReplace">
-              <label for="enable-groups-replace">Enable Replace (PUT)</label>
+              <label for="enable-groups-replace">Put</label>
             </div>
             <div class="option">
               <input type="checkbox" id="enable-groups-update" v-model="model.groups.enableUpdate">
-              <label for="enable-groups-update">Enable Update (PATCH)</label>
+              <label for="enable-groups-update">Patch</label>
             </div>
             <div class="option">
               <input type="checkbox" id="enable-groups-delete" v-model="model.groups.enableDelete">
-              <label for="enable-groups-delete">Enable Delete</label>
+              <label for="enable-groups-delete">Delete</label>
             </div>
             <div class="option">
               <label for="groups-sort-attributes">Sort Attributes to Test:</label>
@@ -231,7 +234,7 @@ export default {
       socket: null,
       result: new Map(),
       testFiles: [],
-      activeTab: 'Users',
+      activeTab: 'Config', // Changed default tab
 
       // Simple nested model structure with detection options
       model: {
