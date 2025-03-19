@@ -185,12 +185,10 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                     return;
                 }
 
-                const user = sharedState.users[0];
-
                 // Update the created user
                 const updatedUser = {
                     ...user,
-                    userName: `updated${user.userName}`
+                    userName: `MarieLarsen`
                 };
 
                 const updateResponse = await testAxios.put(`/Users/${user.id}`, updatedUser);
