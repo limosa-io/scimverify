@@ -1,170 +1,177 @@
 <template>
-  <div class="test-form">
-    <form @submit.prevent="runTests">
-      <!-- SCIM Base URL -->
-      <div class="form-group">
-        <label for="url">SCIM Base URL:</label>
-        <input type="url" id="url" v-model="url" required placeholder="Enter the SCIM Base URL">
-      </div>
-
-      <!-- Authorization Token -->
-      <div class="form-group">
-        <label for="token">Authorization Token:</label>
-        <input type="text" id="token" v-model="token" required placeholder="Enter the Authorization Token">
-      </div>
-
-      <!-- Detection Options -->
-      <div class="form-group">
-        <div class="option">
-          <input type="checkbox" id="detect-schema" v-model="model.detectSchema">
-          <label for="detect-schema">Detect Schema</label>
+  <div class="report-container">
+    <div class="test-form">
+      <form @submit.prevent="runTests">
+        <!-- SCIM Base URL -->
+        <div class="form-group">
+          <label for="url">SCIM Base URL:</label>
+          <input type="url" id="url" v-model="url" required placeholder="Enter the SCIM Base URL">
         </div>
-        <div class="option">
-          <input type="checkbox" id="detect-resource-types" v-model="model.detectResourceTypes">
-          <label for="detect-resource-types">Detect Resource Types</label>
-        </div>
-      </div>
 
-      <!-- Resource Type Tabs -->
-      <div class="form-group">
-        <label>Resource Type:</label>
-        <div class="tabs">
-          <div class="tab" :class="{ active: activeTab === 'Users' }" @click="setResourceType('Users')">
-            Users
+        <!-- Authorization Token -->
+        <div class="form-group">
+          <label for="token">Authorization Token:</label>
+          <input type="text" id="token" v-model="token" required placeholder="Enter the Authorization Token">
+        </div>
+
+        <!-- Detection Options -->
+        <div class="form-group">
+          <div class="option">
+            <input type="checkbox" id="detect-schema" v-model="model.detectSchema">
+            <label for="detect-schema">Detect Schema</label>
           </div>
-          <div class="tab" :class="{ active: activeTab === 'Groups' }" @click="setResourceType('Groups')">
-            Groups
+          <div class="option">
+            <input type="checkbox" id="detect-resource-types" v-model="model.detectResourceTypes">
+            <label for="detect-resource-types">Detect Resource Types</label>
           </div>
         </div>
 
-        <!-- Users Tab Content -->
-        <div v-if="activeTab === 'Users'" class="tab-content">
-          <div class="option">
-            <input type="checkbox" id="enable-users" v-model="model.users.enabled">
-            <label for="enable-users">Enable Users Testing</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="enable-users-create" v-model="model.users.enableCreate">
-            <label for="enable-users-create">Enable Create</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="enable-users-replace" v-model="model.users.enableReplace">
-            <label for="enable-users-replace">Enable Replace (PUT)</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="enable-users-update" v-model="model.users.enableUpdate">
-            <label for="enable-users-update">Enable Update (PATCH)</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="enable-users-delete" v-model="model.users.enableDelete">
-            <label for="enable-users-delete">Enable Delete</label>
-          </div>
-          <div class="option">
-            <label for="users-sort-attributes">Sort Attributes to Test:</label>
-            <input type="text" id="users-sort-attributes" v-model="userSortAttributesText"
-              placeholder="Comma-separated attributes" @change="updateUserSortAttributes">
-          </div>
-        </div>
-
-        <!-- Groups Tab Content -->
-        <div v-if="activeTab === 'Groups'" class="tab-content">
-          <div class="option">
-            <input type="checkbox" id="enable-groups" v-model="model.groups.enabled">
-            <label for="enable-groups">Enable Groups Testing</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="enable-groups-create" v-model="model.groups.enableCreate">
-            <label for="enable-groups-create">Enable Create</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="enable-groups-replace" v-model="model.groups.enableReplace">
-            <label for="enable-groups-replace">Enable Replace (PUT)</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="enable-groups-update" v-model="model.groups.enableUpdate">
-            <label for="enable-groups-update">Enable Update (PATCH)</label>
-          </div>
-          <div class="option">
-            <input type="checkbox" id="enable-groups-delete" v-model="model.groups.enableDelete">
-            <label for="enable-groups-delete">Enable Delete</label>
-          </div>
-          <div class="option">
-            <label for="groups-sort-attributes">Sort Attributes to Test:</label>
-            <input type="text" id="groups-sort-attributes" v-model="groupSortAttributesText"
-              placeholder="Comma-separated attributes" @change="updateGroupSortAttributes">
-          </div>
-        </div>
-      </div>
-
-      <!-- Run Tests Button -->
-      <button type="submit">Run Tests</button>
-    </form>
-  </div>
-
-  <!-- Test Output Section -->
-  <div class="test-output">
-    <h2>Test Results</h2>
-    <div
-      v-for="testFile in testFiles.filter(f => f.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type)).length > 0)"
-      class="file-item">
-      <h3>{{ testFile.file }}</h3>
-      <details v-for="r in testFile.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type))"
-        class="result-item">
-        <summary class="result-value" :class="[r.getLatest().type, r.skipped() ? 'test:skip' : '']">
-          <component :is="r.getLatest().data.nesting == 0 ? 'h2' : 'h3'">
-            {{ r.getLatest().data.name }}
-          </component>
-        </summary>
-        <p v-if="r.getLatest().type == 'test:fail' && !r.skipped()">
-          <strong>Error:</strong> {{ r.getLatest().data?.details?.assertionMessage?.replace('\n\n', ': ') }}
-        </p>
-        <p v-if="r.skipped()">This test was skipped because it depends on a prerequisite test that failed.</p>
-
-        <!-- Diagnostic Messages -->
-        <div v-for="msg in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'request')" class="diagnostic-tabs">
+        <!-- Resource Type Tabs -->
+        <div class="form-group">
+          <label>Resource Type:</label>
           <div class="tabs">
-            <div
-              class="tab"
-              :class="{ active: getActiveDiagnosticTab(msg.data.line) === 'request' }"
-              @click="setDiagnosticTab(msg.data.line, 'request')"
-            >
-              Request
+            <div class="tab" :class="{ active: activeTab === 'Users' }" @click="setResourceType('Users')">
+              Users
             </div>
-            <div
-              class="tab"
-              :class="{ active: getActiveDiagnosticTab(msg.data.line) === 'response' }"
-              @click="setDiagnosticTab(msg.data.line, 'response')"
-            >
-              Response
+            <div class="tab" :class="{ active: activeTab === 'Groups' }" @click="setResourceType('Groups')">
+              Groups
             </div>
           </div>
+
+          <!-- Users Tab Content -->
+          <div v-if="activeTab === 'Users'" class="tab-content">
+            <div class="option">
+              <input type="checkbox" id="enable-users" v-model="model.users.enabled">
+              <label for="enable-users">Get</label>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="enable-users-create" v-model="model.users.enableCreate">
+              <label for="enable-users-create">Create</label>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="enable-users-replace" v-model="model.users.enableReplace">
+              <label for="enable-users-replace">Put</label>
+            </div>
+            <div class="option" v-if="model.users.enableReplace">
+              <label for="users-replace-id">User ID for Replace (optional):</label>
+              <input type="text" id="users-replace-id" v-model="model.users.replaceId" 
+              placeholder="Leave empty to auto-detect">
+            </div>
+            <div class="option">
+              <input type="checkbox" id="enable-users-update" v-model="model.users.enableUpdate">
+              <label for="enable-users-update">Patch</label>
+            </div>
+            <div class="option" v-if="model.users.enableUpdate">
+              <label for="users-replace-id">User ID for Patch (optional):</label>
+              <input type="text" id="users-replace-id" v-model="model.users.updateId" 
+              placeholder="Leave empty to auto-detect">
+            </div>
+            <div class="option">
+              <input type="checkbox" id="enable-users-delete" v-model="model.users.enableDelete">
+              <label for="enable-users-delete">Delete</label>
+            </div>
+            <div class="option">
+              <label for="users-sort-attributes">Sort Attributes to Test:</label>
+              <input type="text" id="users-sort-attributes" v-model="userSortAttributesText"
+                placeholder="Comma-separated attributes" @change="updateUserSortAttributes">
+            </div>
+          </div>
+
+          <!-- Groups Tab Content -->
+          <div v-if="activeTab === 'Groups'" class="tab-content">
+            <div class="option">
+              <input type="checkbox" id="enable-groups" v-model="model.groups.enabled">
+              <label for="enable-groups">Enable Groups Testing</label>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="enable-groups-create" v-model="model.groups.enableCreate">
+              <label for="enable-groups-create">Enable Create</label>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="enable-groups-replace" v-model="model.groups.enableReplace">
+              <label for="enable-groups-replace">Enable Replace (PUT)</label>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="enable-groups-update" v-model="model.groups.enableUpdate">
+              <label for="enable-groups-update">Enable Update (PATCH)</label>
+            </div>
+            <div class="option">
+              <input type="checkbox" id="enable-groups-delete" v-model="model.groups.enableDelete">
+              <label for="enable-groups-delete">Enable Delete</label>
+            </div>
+            <div class="option">
+              <label for="groups-sort-attributes">Sort Attributes to Test:</label>
+              <input type="text" id="groups-sort-attributes" v-model="groupSortAttributesText"
+                placeholder="Comma-separated attributes" @change="updateGroupSortAttributes">
+            </div>
+          </div>
+        </div>
+
+        <!-- Run Tests Button -->
+        <button type="submit">Run Tests</button>
+      </form>
+    </div>
+
+    <!-- Test Output Section -->
+    <div class="test-output" v-if="testFiles?.length > 0">
+      <h2>Test Results</h2>
+      <div
+        v-for="testFile in testFiles.filter(f => f.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type)).length > 0)"
+        class="file-item">
+        <details v-for="r in testFile.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type))"
+          class="result-item">
+          <summary class="result-value" :class="[r.getLatest().type, r.skipped() ? 'test:skip' : '']">
+            <component :is="r.getLatest().data.nesting == 0 ? 'h2' : 'h3'">
+              {{ r.getLatest().data.name }}
+            </component>
+          </summary>
+          <p v-if="r.getLatest().type == 'test:fail' && !r.skipped()">
+            <strong>Error:</strong> {{ r.getLatest().data?.details?.assertionMessage?.replace('\n\n', ': ') }}
+          </p>
+          <p v-if="r.skipped()">This test was skipped because it depends on a prerequisite test that failed.</p>
+
+          <!-- Diagnostic Messages -->
+          <div
+            v-for="msg in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'request')"
+            class="diagnostic-tabs">
+            <div class="tabs">
+              <div class="tab" :class="{ active: getActiveDiagnosticTab(msg.data.line) === 'request' }"
+                @click="setDiagnosticTab(msg.data.line, 'request')">
+                Request
+              </div>
+              <div class="tab" :class="{ active: getActiveDiagnosticTab(msg.data.line) === 'response' }"
+                @click="setDiagnosticTab(msg.data.line, 'response')">
+                Response
+              </div>
+            </div>
 
             <div v-if="getActiveDiagnosticTab(msg.data.line) === 'request'" class="tab-content">
-            <div class="http-request">
-              <div class="request-line"><strong>{{ msg.data.message.method }}</strong> {{ msg.data.message.url }} HTTP/1.1</div>
-              <div class="request-headers">
-              <div v-for="(value, key) in msg.data.message.headers" :key="key">
-                <strong>{{ key }}:</strong> {{ value }}
+              <div class="http-request">
+                <div class="request-line"><strong>{{ msg.data.message.method }}</strong> {{ msg.data.message.url }}
+                  HTTP/1.1</div>
+                <div class="request-headers">
+                  <div v-for="(value, key) in msg.data.message.headers" :key="key">
+                    <strong>{{ key }}:</strong> {{ value }}
+                  </div>
+                </div>
+                <pre v-if="msg.data.message.body">{{ formatJSON(msg.data.message.body) }}</pre>
               </div>
-              </div>
-              <div v-if="msg.data.message.body" class="request-body">
-              <pre>{{ formatJSON(msg.data.message.body) }}</pre>
-              </div>
-            </div>
             </div>
 
-          <div v-for="response in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'response' && m.data.line == msg.data.line)" v-if="getActiveDiagnosticTab(msg.data.line) === 'response'" class="tab-content">
-            <div>HTTP {{ response.data.message.status }} {{ response.data.message.statusText }}</div>
-            <div v-if="response.data.message.headers">
-              <span v-for="(value, key) in response.data.message.headers" :key="key">
-              <strong>{{ key }}:</strong> {{ value }}<br />
-              </span>
+            <div
+              v-for="response in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'response' && m.data.line == msg.data.line)"
+              v-if="getActiveDiagnosticTab(msg.data.line) === 'response'" class="tab-content">
+              <div>HTTP {{ response.data.message.status }} {{ response.data.message.statusText }}</div>
+              <div v-if="response.data.message.headers">
+                <span v-for="(value, key) in response.data.message.headers" :key="key">
+                  <strong>{{ key }}:</strong> {{ value }}<br />
+                </span>
+              </div>
+              <pre v-if="response.data.message.body">{{ formatJSON(response.data.message.body) }}</pre>
             </div>
-            <pre v-else>No headers</pre><br />
-            <div>{{ formatJSON(response.data.message.body) }}</div>
           </div>
-        </div>
-      </details>
+        </details>
+      </div>
     </div>
   </div>
 </template>
@@ -187,7 +194,7 @@ class TestResult {
     // Find the latest message that is not of type 'test:diagnostic'
     for (let i = this.messages.length - 1; i >= 0; i--) {
       if (this.messages[i].type !== 'test:diagnostic') {
-      return this.messages[i];
+        return this.messages[i];
       }
     }
     // If all messages are diagnostic, return the latest one
@@ -225,7 +232,7 @@ export default {
       result: new Map(),
       testFiles: [],
       activeTab: 'Users',
-      
+
       // Simple nested model structure with detection options
       model: {
         detectSchema: true,
@@ -236,7 +243,9 @@ export default {
           enableCreate: true,
           enableReplace: true,
           enableUpdate: true,
-          enableDelete: true
+          enableDelete: true,
+          replaceId: null,
+          updateId: null
         },
         groups: {
           enabled: true,
@@ -252,12 +261,12 @@ export default {
           sortAttributes: []
         }
       },
-      
+
       // Text fields for sort attributes
       userSortAttributesText: 'userName',
       groupSortAttributesText: 'displayName',
       customSortAttributesText: '',
-      
+
       // Track active diagnostic tabs per message
       diagnosticTabs: new Map(),
     };
@@ -267,45 +276,45 @@ export default {
     this.userSortAttributesText = this.model.users.sortAttributes.join(', ');
     this.groupSortAttributesText = this.model.groups.sortAttributes.join(', ');
     this.customSortAttributesText = this.model.custom.sortAttributes.join(', ');
-    
+
     // Initialize the config display
     this.updateConfig();
   },
   watch: {
-    'model': function() {
+    'model': function () {
       this.updateConfig();
     },
-    'model.groups.enabled': function() {
+    'model.groups.enabled': function () {
       this.updateConfig();
     },
-    'model.users.enableCreate': function() {
+    'model.users.enableCreate': function () {
       this.updateConfig();
     },
-    'model.users.enableReplace': function() {
+    'model.users.enableReplace': function () {
       this.updateConfig();
     },
-    'model.users.enableUpdate': function() {
+    'model.users.enableUpdate': function () {
       this.updateConfig();
     },
-    'model.groups.enableCreate': function() {
+    'model.groups.enableCreate': function () {
       this.updateConfig();
     },
-    'model.groups.enableReplace': function() {
+    'model.groups.enableReplace': function () {
       this.updateConfig();
     },
-    'model.groups.enableUpdate': function() {
+    'model.groups.enableUpdate': function () {
       this.updateConfig();
     },
-    'model.detectSchema': function() {
+    'model.detectSchema': function () {
       this.updateConfig();
     },
-    'model.detectResourceTypes': function() {
+    'model.detectResourceTypes': function () {
       this.updateConfig();
     },
-    'model.users.enableDelete': function() {
+    'model.users.enableDelete': function () {
       this.updateConfig();
     },
-    'model.groups.enableDelete': function() {
+    'model.groups.enableDelete': function () {
       this.updateConfig();
     },
     activeTab() {
@@ -339,14 +348,14 @@ export default {
         users: this.model.users,
         groups: this.model.groups
       };
-      
+
       this.config = JSON.stringify(configObj, null, 2);
     },
     setResourceType(type) {
       this.activeTab = type;
       this.updateConfig();
     },
-    
+
     setupSocket() {
       if (this.socket && this.socket.connected) {
         return; // Socket already connected
@@ -445,7 +454,7 @@ export default {
     },
     runTests() {
       this.output = ''; // Clear previous output
-      
+
       const configObject = {
         url: this.url,
         token: this.token,
@@ -455,7 +464,7 @@ export default {
         users: this.model.users,
         groups: this.model.groups
       };
-      
+
       if (this.activeTab === 'Custom' && this.model.custom.enabled) {
         configObject.custom = this.model.custom;
       }
@@ -474,7 +483,7 @@ export default {
     setDiagnosticTab(messageId, tabName) {
       this.diagnosticTabs.set(messageId, tabName);
     },
-    
+
     // Get active tab for a specific diagnostic message
     getActiveDiagnosticTab(messageId) {
       // Default to 'response' if not set
@@ -485,11 +494,80 @@ export default {
 </script>
 
 <style scoped>
+.report-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1240px) {
+  .report-container {
+    max-width: 100%;
+  }
+}
+
+/* Common styles */
+.test-form, .test-output {
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eaeaea;
+}
+
+.test-form {
+  margin: 28px 0;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+/* Form elements */
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+input[type="url"],
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background-color: #fafafa;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  
+  &:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+    background-color: #ffffff;
+  }
+  
+  &::placeholder {
+    color: #a0aec0;
+  }
+}
+
+/* Tabs styling */
 .tabs {
   display: flex;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 0; /* Removed margin to eliminate spacing */
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 0;
   gap: 4px;
+  background-color: #f8fafc;
+  border-radius: 8px 8px 0 0;
+  padding: 4px 4px 0 4px;
 }
 
 .tab {
@@ -500,384 +578,329 @@ export default {
   margin-bottom: -1px;
   border-radius: 6px 6px 0 0;
   transition: all 0.2s ease;
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
   font-weight: 500;
   user-select: none;
-}
-
-.tab:hover {
-  background-color: #edf2f7;
-  color: #3182ce;
-}
-
-.tab.active {
-  background-color: #fff;
-  border-color: #ddd;
-  border-bottom-color: white;
-  font-weight: 600;
-  color: #3182ce;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+  font-size: 14px;
+  color: #64748b;
+  
+  &:hover {
+    background-color: #f8fafc;
+    color: #2563eb;
+  }
+  
+  &.active {
+    background-color: #fff;
+    border-color: #e2e8f0;
+    border-bottom-color: white;
+    font-weight: 600;
+    color: #2563eb;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.03);
+  }
 }
 
 .tab-content {
-  padding: 18px;
+  padding: 20px;
   background-color: white;
-  border: 1px solid #ddd;
+  border: 1px solid #e2e8f0;
   border-top: none;
   border-radius: 0 0 8px 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
 }
 
+/* Checkbox styling */
 .option {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   display: flex;
   align-items: center;
+  
+  label {
+    display: inline-block;
+    font-weight: 500;
+    cursor: pointer;
+    color: #4b5563;
+    user-select: none;
+    width: 300px;
+    font-size: 0.9rem;
+  }
+  
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    margin-right: 10px;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: all 0.2s;
+    background-color: white;
+    
+    &:checked {
+      background-color: #2563eb;
+      border-color: #2563eb;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 2px;
+        width: 6px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    }
+    
+    &:hover {
+      border-color: #93c5fd;
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+  }
 }
 
-.option input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  margin-right: 10px;
-  position: relative;
-  cursor: pointer;
-  vertical-align: middle;
-  transition: all 0.2s;
-  background-color: white;
-}
-
-.option input[type="checkbox"]:checked {
-  background-color: #4299e1;
-  border-color: #4299e1;
-}
-
-.option input[type="checkbox"]:checked::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 2px;
-  width: 6px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-.option input[type="checkbox"]:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.25);
-}
-
-.option label {
-  display: inline-block;
-  font-weight: 500;
-  cursor: pointer;
-  color: #4a5568;
-  user-select: none;
-  width: 300px;
-}
-
-select[multiple] {
-  height: 120px;
-  border: 1px solid #e2e8f0;
+/* Button styling */
+button {
+  background-color: #2563eb;
+  color: white;
+  padding: 12px 24px;
+  border: none;
   border-radius: 6px;
-  padding: 8px;
-  width: 100%;
-  background-color: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  
+  &:hover {
+    background-color: #1d4ed8;
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.25);
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+  }
 }
 
-select[multiple] option {
-  padding: 6px 8px;
-  margin: 2px 0;
-  border-radius: 4px;
-}
-
-select[multiple] option:checked {
-  background-color: #ebf4ff;
-  color: #3182ce;
-}
-
+/* Test output styling */
 .test-output {
-  border: 1px solid #eaeaea;
-  padding: 16px;
-  border-radius: 8px;
-  background-color: #fcfcfc;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  margin-top: 24px;
+  padding: 20px;
+  margin-top: 30px;
+  border-color: #e4e4e7;
+  
+  h2 {
+    margin: 0 0 20px 0;
+    font-size: 1.4em;
+    color: #18181b;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f4f4f5;
+  }
+}
+
+.file-item {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f4f4f5;
 }
 
 .result-item {
   margin-bottom: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   transition: all 0.2s ease-in-out;
+  border: 1px solid #f4f4f5;
+  
+  &:hover {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+  }
+  
+  p {
+    padding: 14px 18px;
+    margin: 0;
+    background-color: white;
+    border-top: 1px solid #f4f4f5;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #4b5563;
+  }
 }
 
-.result-item:hover {
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
-}
-
+/* Summary styling */
 summary {
-  margin: 3px 0;
-  padding: 10px 14px;
+  margin: 0;
+  padding: 14px 18px;
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s;
   user-select: none;
   font-weight: 500;
   position: relative;
-  background-color: rgba(0, 0, 0, 0.02);
-
-  h2,
-  h3 {
+  background-color: #fafafa;
+  
+  h2, h3 {
     display: inline;
     margin: 0;
     padding: 0;
     font-weight: 600;
+    font-size: 1rem;
   }
-
+  
   &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: #f5f5f5;
   }
-}
-
-summary:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
-}
-
-summary.test\:pass {
-  background-color: rgba(72, 187, 120, 0.08);
-
-  &:hover {
-    background-color: rgba(72, 187, 120, 0.12);
-  }
-}
-
-summary.test\:pass::marker {
-  color: #48bb78;
-  content: '✓ ';
-}
-
-summary.test\:fail {
-  background-color: rgba(245, 101, 101, 0.08);
-
-  &:hover {
-    background-color: rgba(245, 101, 101, 0.12);
-  }
-}
-
-summary.test\:fail::marker {
-  color: #f56565;
-  content: '✗ ';
-}
-
-summary.test\:skip {
-  background-color: rgba(237, 137, 54, 0.08);
-
-  &:hover {
-    background-color: rgba(237, 137, 54, 0.12);
-  }
-}
-
-summary.test\:skip::marker {
-  color: #ed8936;
-  content: '~ ';
-}
-
-.result-item p {
-  padding: 12px 16px;
-  margin: 0;
-  background-color: white;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  font-size: 0.95em;
-  line-height: 1.6;
-  color: #4a5568;
-}
-
-.file-item {
-  margin-bottom: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #edf2f7;
-}
-
-.file-item h3 {
-  margin-top: 0;
-  margin-bottom: 12px;
-  font-size: 1.1em;
-  color: #2d3748;
-}
-
-.test-form {
-  margin-bottom: 28px;
-  background-color: #f9fafb;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: #4a5568;
-}
-
-input[type="url"],
-input[type="text"],
-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  box-sizing: border-box;
-  font-size: 15px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-
+  
   &:focus {
     outline: none;
-    border-color: #4299e1;
-    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.25);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+  }
+  
+  &.test\:pass {
+    background-color: rgba(34, 197, 94, 0.05);
+    
+    &:hover {
+      background-color: rgba(34, 197, 94, 0.08);
+    }
+    
+    &::marker {
+      color: #22c55e;
+      content: '✓ ';
+    }
+  }
+  
+  &.test\:fail {
+    background-color: rgba(239, 68, 68, 0.05);
+    
+    &:hover {
+      background-color: rgba(239, 68, 68, 0.08);
+    }
+    
+    &::marker {
+      color: #ef4444;
+      content: '✗ ';
+    }
+  }
+  
+  &.test\:skip {
+    background-color: rgba(245, 158, 11, 0.05);
+    
+    &:hover {
+      background-color: rgba(245, 158, 11, 0.08);
+    }
+    
+    &::marker {
+      color: #f59e0b;
+      content: '~ ';
+    }
   }
 }
 
-textarea {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  resize: vertical;
-  min-height: 100px;
-}
-
-button {
-  background-color: #4299e1;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s, transform 0.1s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    background-color: #3182ce;
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
+/* Code styling */
+pre, .http-request {
+  font-family: 'SF Mono', SFMono-Regular, ui-monospace, Consolas, Menlo, monospace;
+  font-size: 13px;
 }
 
 pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-all;
-  background-color: #f8fafc;
-  padding: 12px;
-  border-radius: 4px;
-  border: 1px solid #edf2f7;
+  background-color: #f9fafb;
+  padding: 14px;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  margin: 10px 0;
+  color: #334155;
 }
 
-/* Animation for details element */
-details[open]>summary~* {
-  animation: slide-down 0.3s ease-in-out;
+/* Request/Response details */
+.request-line {
+  margin-bottom: 12px;
+  color: #334155;
+  
+  strong {
+    color: #2563eb;
+  }
+}
+
+.request-headers {
+  margin-bottom: 12px;
+  color: #64748b;
+  
+  strong {
+    color: #475569;
+  }
+}
+
+/* Diagnostic tabs */
+.diagnostic-tabs {
+  margin-top: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: #f8fafc;
+    border-radius: 6px 6px 0 0;
+    padding: 4px 4px 0 4px;
+  }
+  
+  .tab {
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: 4px 4px 0 0;
+  }
+  
+  .tab-content {
+    padding: 16px;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #334155;
+  }
+}
+
+/* Animation */
+details[open] > summary ~ * {
+  animation: slide-down 0.25s ease-in-out;
 }
 
 @keyframes slide-down {
   0% {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
-
   100% {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* Add spacing and better alignment for test results */
-.test-output h2 {
-  margin-bottom: 16px;
-  font-size: 1.5em;
-  color: #2d3748;
-}
-
-.file-item h3 {
-  margin-top: 0;
-  margin-bottom: 12px;
-  font-size: 1.2em;
-  color: #4a5568;
-}
-
-.result-item p {
-  margin: 8px 0;
-  padding: 8px 12px;
-  background-color: #f7fafc;
-  border-radius: 4px;
-  border: 1px solid #e2e8f0;
-  font-size: 0.95em;
-  line-height: 1.5;
-  color: #4a5568;
-}
-
-.result-item p strong {
-  font-weight: 600;
-  color: #2d3748;
-}
-
-/* Tabs for diagnostic messages */
-.diagnostic-tabs {
-  margin-top: 16px;
-}
-
-.diagnostic-tabs .tabs {
-  display: flex;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 8px;
-}
-
-.diagnostic-tabs .tab {
-  padding: 8px 16px;
-  cursor: pointer;
-  border: 1px solid #e2e8f0;
-  border-bottom: none;
-  margin-bottom: -1px;
-  border-radius: 6px 6px 0 0;
-  transition: all 0.2s ease;
-  background-color: #f8fafc;
-  font-weight: 500;
-  user-select: none;
-}
-
-.diagnostic-tabs .tab:hover {
-  background-color: #edf2f7;
-  color: #3182ce;
-}
-
-.diagnostic-tabs .tab.active {
-  background-color: #fff;
-  border-color: #ddd;
-  border-bottom-color: white;
-  font-weight: 600;
-  color: #3182ce;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.diagnostic-tabs .tab-content {
-  padding: 12px;
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: #4a5568;
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .test-form {
+    padding: 16px;
+  }
+  
+  .tab {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .option label {
+    width: auto;
+  }
+  
+  button {
+    width: 100%;
+  }
 }
 </style>

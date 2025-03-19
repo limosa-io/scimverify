@@ -176,8 +176,11 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         if (configuration?.users?.enableReplace) {
             test('Updates a user using PUT', async (t) => {
                 const testAxios = getAxiosInstance(getConfig(), t);
+
+                const replaceId = configuration.users.updateId ?? sharedState.users?.[0]?.id;
+
                 // TODO: get user from retrieved users, do not use created user
-                if (!(sharedState.users?.[0])) {
+                if (!replaceId) {
                     t.skip('Previous test failed or no user created in shared state');
                     return;
                 }
@@ -203,13 +206,13 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         if (configuration?.users?.enableUpdate) {
             test('Updates a user using PATCH', async (t) => {
                 const testAxios = getAxiosInstance(getConfig(), t);
+                
+                const replaceId = configuration.users.updateId ?? sharedState.users?.[0]?.id;
 
-                if (!(sharedState.users?.[0])) {
+                if (!replaceId) {
                     t.skip('Previous test failed or no user created in shared state');
                     return;
                 }
-
-                const user = sharedState.users[0];
 
                 const patchData = {
                     schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
@@ -217,12 +220,12 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                         {
                             op: 'replace',
                             path: 'userName',
-                            value: `patched${user.userName}`
+                            value: `JohnDoe`
                         }
                     ]
                 };
 
-                const patchResponse = await testAxios.patch(`/Users/${user.id}`, patchData);
+                const patchResponse = await testAxios.patch(`/Users/${replaceId}`, patchData);
                 assert.strictEqual(patchResponse.status, 200, 'User patch should return 200 OK');
                 assert.strictEqual(patchResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
                 assert.strictEqual(patchResponse.data.userName, patchData.Operations[0].value, 'Patched user should have the new userName');
