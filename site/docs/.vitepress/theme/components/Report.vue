@@ -16,7 +16,6 @@
 
         <!-- Resource Type Tabs -->
         <div class="form-group">
-          <label>Resource Type:</label>
           <div class="tabs">
             <div class="tab" :class="{ active: activeTab === 'Config' }" @click="setResourceType('Config')">
               Config
