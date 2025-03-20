@@ -173,7 +173,9 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                 });
             }
 
-            for (const [index, creation] of configuration.creations.entries()) {
+            console.log(configuration.users);
+
+            for (const [index, creation] of configuration.users.post_tests.entries()) {
                 test(`Creates a new user - Alternative ${index + 1}`, async (t) => {
                     const testAxios = getAxiosInstance(getConfig(), t);
                     // find required attributes from the schema
@@ -193,12 +195,12 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             }
         }
 
-        if (configuration?.users?.enableReplace) {
-            for (const [index, update] of configuration.puts.entries()) {
+        if (configuration?.users?.operations.includes('PUT')) {
+            for (const [index, update] of configuration.users.put_tests.entries()) {
                 test('Updates a user using PUT', async (t) => {
                     const testAxios = getAxiosInstance(getConfig(), t);
 
-                    const replaceId = configuration.users.updateId ?? sharedState.users?.[0]?.id;
+                    const replaceId = !update.id || update.id == 'AUTO' ? sharedState.users?.[0]?.id : update.id;
 
                     // TODO: get user from retrieved users, do not use created user
                     if (!replaceId) {
@@ -219,12 +221,12 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             }
         }
 
-        if (configuration?.users?.enableUpdate) {
-            for(const [index, patch] of configuration.patches.entries()) {
+        if (configuration?.users?.operations.includes('PATCH')) {
+            for(const [index, patch] of configuration.users.patches.entries()) {
                 test('Updates a user using PATCH - Alternative ', async (t) => {
                     const testAxios = getAxiosInstance(getConfig(), t);
 
-                    const replaceId = configuration.users.updateId ?? sharedState.users?.[0]?.id;
+                    const replaceId = !patch.id || patch.id == 'AUTO' ? sharedState.users?.[0]?.id : patch.id;
 
                     if (!replaceId) {
                         t.skip('Previous test failed or no user created in shared state');
@@ -245,20 +247,22 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             }
         }
 
-        if (configuration?.users?.enableDelete) {
-            test('Deletes a user', async (t) => {
-                const testAxios = getAxiosInstance(getConfig(), t);
+        if (configuration?.users?.operations.includes('DELETE')) {
+            for (const [index, deletion] of configuration.users.delete_tests.entries()) {
+                test('Deletes a user', async (t) => {
+                    const testAxios = getAxiosInstance(getConfig(), t);
 
-                const deleteId = configuration.users.deleteId ?? sharedState.users?.[0]?.id;
+                    const deleteId = !deletion.id || deletion.id == 'AUTO' ? sharedState.createdUser?.id : deletion.id;
 
-                if (!deleteId) {
-                    t.skip('Previous test failed or no user created in shared state');
-                    return;
-                }
+                    if (!deleteId) {
+                        t.skip('Previous test failed or no user created in shared state');
+                        return;
+                    }
 
-                const response = await testAxios.delete(`/Users/${deleteId}`);
-                assert.strictEqual(response.status, 204, 'User deletion should return 204 No Content');
-            });
+                    const response = await testAxios.delete(`/Users/${deleteId}`);
+                    assert.strictEqual(response.status, 204, 'User deletion should return 204 No Content');
+                });
+            }
         }
     });
 }

@@ -1,0 +1,205 @@
+detectSchema: true
+detectResourceTypes: true
+
+users:
+  enabled: true
+  operations:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+  sortAttributes:
+    - userName
+
+  post_tests:
+    - request:
+        {
+          "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+          "userName": "barbara jensen",
+          "emails": [
+            {
+              "value": "barbara.jensen@example.com"
+            }
+          ]
+        }
+      response:
+        {
+          "type": "object",
+          "properties": {
+            "schemas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "contains": {
+                "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+              }
+            },
+            "userName": {
+              "type": "string",
+              "const": "barbara jensen"
+            }
+          },
+          "required": [
+            "userName",
+            "schemas"
+          ],
+          "additionalProperties": true
+        }
+    - request:
+        {
+          "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User"
+          ],
+          "userName": "testuser6238",
+          "emails": [
+            {
+              "value": "barbara.jensen@example.com"
+            }
+          ]
+        }
+      response:
+        {
+          "type": "object",
+          "properties": {
+            "schemas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "contains": {
+                "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+              }
+            },
+            "userName": {
+              "type": "string",
+              "const": "testuser6238"
+            },
+            "emails": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "const": "barbara.jensen@example.com"
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "userName",
+            "schemas",
+            "emails"
+          ],
+          "additionalProperties": true
+        }
+
+  put_tests:
+    - id: AUTO
+      request:
+        {
+          "schemas": [
+            "urn:ietf:params:scim:schemas:core:2.0:User"
+          ],
+          "userName": "testuser6238",
+          "emails": [
+            {
+              "value": "barbara.jensen@example.com"
+            }
+          ]
+        }
+      response:
+        {
+          "type": "object",
+          "properties": {
+            "schemas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "contains": {
+                "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+              }
+            },
+            "userName": {
+              "type": "string",
+              "const": "testuser6238"
+            },
+            "emails": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "const": "barbara.jensen@example.com"
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "userName",
+            "schemas",
+            "emails"
+          ],
+          "additionalProperties": true
+        }
+
+  patch_tests:
+    - id: AUTO
+      request:
+        {
+          "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+          "Operations": [
+            {
+              "op": "replace",
+              "path": "userName",
+              "value": "JohnDoe"
+            }
+          ]
+        }
+      response:
+        {
+          "type": "object",
+          "properties": {
+            "schemas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "contains": {
+                "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+              }
+            },
+            "userName": {
+              "type": "string",
+              "const": "JohnDoe"
+            }
+          },
+          "required": [
+            "userName",
+            "schemas"
+          ],
+          "additionalProperties": true
+        }
+  delete_tests:
+    - id: AUTO
+
+groups:
+  enabled: true
+  sortAttributes:
+    - displayName
+  enableCreate: true
+  enableReplace: true
+  enableUpdate: true
+  enableDelete: true
+
+custom:
+  enabled: false
+  schema: ""
+  sortAttributes: []
+

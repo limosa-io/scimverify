@@ -39,114 +39,15 @@
         </div>
 
 
-        <!-- Advanced settings -->
+        <!-- Advanced settings YAML editor -->
         <div class="form-group advanced-settings" :class="{ 'show': showAdvanced }">
-          <div class="tabs">
-            <div class="tab" :class="{ active: activeTab === 'Config' }" @click="setResourceType('Config')">
-              Config
-            </div>
-            <div class="tab" :class="{ active: activeTab === 'Users' }" @click="setResourceType('Users')">
-              Users
-            </div>
-            <div class="tab" :class="{ active: activeTab === 'Groups' }" @click="setResourceType('Groups')">
-              Groups
-            </div>
+          <div class="editor-label">
+            <label for="yaml-editor">Advanced Configuration (YAML):</label>
+            <div class="editor-hint">Configure test settings using YAML format</div>
           </div>
-
-          <!-- Config Tab Content -->
-          <div v-if="activeTab === 'Config'" class="tab-content">
-            <div class="option">
-              <input type="checkbox" id="detect-schema" v-model="model.detectSchema">
-              <label for="detect-schema">Detect Schema</label>
-            </div>
-            <div class="option">
-              <input type="checkbox" id="detect-resource-types" v-model="model.detectResourceTypes">
-              <label for="detect-resource-types">Detect Resource Types</label>
-            </div>
-          </div>
-
-          <!-- Users Tab Content -->
-          <div v-if="activeTab === 'Users'" class="tab-content">
-            <div class="option">
-              <input type="checkbox" id="enable-users" v-model="model.users.enabled">
-              <label for="enable-users">Get</label>
-            </div>
-            <div class="option">
-              <input type="checkbox" id="enable-users-create" v-model="model.users.enableCreate">
-              <label for="enable-users-create">Create</label>
-            </div>
-
-            <div class="option" v-if="model.users.enableCreate">
-              <label for="create-user-template">Example User JSON:</label>
-              <textarea 
-                id="create-user-template" 
-                v-model="model.users.createTemplate" 
-                placeholder="Provide example JSON for user creation (optional)"
-                rows="3"></textarea>
-              <div class="hint">Leave empty to use default template</div>
-            </div>
-
-            <div class="option">
-              <input type="checkbox" id="enable-users-replace" v-model="model.users.enableReplace">
-              <label for="enable-users-replace">Put</label>
-            </div>
-            <div class="option" v-if="model.users.enableReplace">
-              <label for="users-replace-id">User ID for Put:</label>
-              <input type="text" id="users-replace-id" v-model="model.users.replaceId" 
-              placeholder="Leave empty to auto-detect">
-            </div>
-            <div class="option">
-              <input type="checkbox" id="enable-users-update" v-model="model.users.enableUpdate">
-              <label for="enable-users-update">Patch</label>
-            </div>
-            <div class="option" v-if="model.users.enableUpdate">
-              <label for="users-replace-id">User ID for Patch:</label>
-              <input type="text" id="users-replace-id" v-model="model.users.updateId" 
-              placeholder="Leave empty to auto-detect">
-            </div>
-            <div class="option">
-              <input type="checkbox" id="enable-users-delete" v-model="model.users.enableDelete">
-              <label for="enable-users-delete">Delete</label>
-            </div>
-            <div class="option" v-if="model.users.enableDelete">
-              <label for="users-delete-id">User ID for Delete:</label>
-              <input type="text" id="users-delete-id" v-model="model.users.deleteId" 
-              placeholder="Leave empty to auto-detect">
-            </div>
-            <div class="option">
-              <label for="users-sort-attributes">Sort Attributes to Test:</label>
-              <input type="text" id="users-sort-attributes" v-model="userSortAttributesText"
-                placeholder="Comma-separated attributes" @change="updateUserSortAttributes">
-            </div>
-          </div>
-
-          <!-- Groups Tab Content -->
-          <div v-if="activeTab === 'Groups'" class="tab-content">
-            <div class="option">
-              <input type="checkbox" id="enable-groups" v-model="model.groups.enabled">
-              <label for="enable-groups">Get</label>
-            </div>
-            <div class="option">
-              <input type="checkbox" id="enable-groups-create" v-model="model.groups.enableCreate">
-              <label for="enable-groups-create">Create</label>
-            </div>
-            <div class="option">
-              <input type="checkbox" id="enable-groups-replace" v-model="model.groups.enableReplace">
-              <label for="enable-groups-replace">Put</label>
-            </div>
-            <div class="option">
-              <input type="checkbox" id="enable-groups-update" v-model="model.groups.enableUpdate">
-              <label for="enable-groups-update">Patch</label>
-            </div>
-            <div class="option">
-              <input type="checkbox" id="enable-groups-delete" v-model="model.groups.enableDelete">
-              <label for="enable-groups-delete">Delete</label>
-            </div>
-            <div class="option">
-              <label for="groups-sort-attributes">Sort Attributes to Test:</label>
-              <input type="text" id="groups-sort-attributes" v-model="groupSortAttributesText"
-                placeholder="Comma-separated attributes" @change="updateGroupSortAttributes">
-            </div>
+          <div ref="editor" class="yaml-editor"></div>
+          <div v-if="yamlError" class="yaml-error">
+            {{ yamlError }}
           </div>
         </div>
 
@@ -220,6 +121,11 @@
 
 <script>
 import { io } from 'socket.io-client';
+import { EditorView, basicSetup } from 'codemirror';
+import { EditorState } from '@codemirror/state';
+import { yaml } from '@codemirror/lang-yaml';
+import { oneDark } from '@codemirror/theme-one-dark';
+import jsYaml from 'js-yaml';
 
 class TestResult {
   constructor(file, line, column, name) {
@@ -274,10 +180,12 @@ export default {
       socket: null,
       result: new Map(),
       testFiles: [],
-      activeTab: 'Config', // Changed default tab
       showAdvanced: false, // Hide advanced settings by default
+      editor: null,
+      yamlConfig: '',
+      yamlError: null,
 
-      // Simple nested model structure with detection options
+      // Model structure with detection options
       model: {
         detectSchema: true,
         detectResourceTypes: true,
@@ -308,11 +216,6 @@ export default {
         }
       },
 
-      // Text fields for sort attributes
-      userSortAttributesText: 'userName',
-      groupSortAttributesText: 'displayName',
-      customSortAttributesText: '',
-
       // Track active diagnostic tabs per message
       diagnosticTabs: new Map(),
 
@@ -323,57 +226,31 @@ export default {
     };
   },
   created() {
-    // Initialize text fields from model
-    this.userSortAttributesText = this.model.users.sortAttributes.join(', ');
-    this.groupSortAttributesText = this.model.groups.sortAttributes.join(', ');
-    this.customSortAttributesText = this.model.custom.sortAttributes.join(', ');
-
     // Initialize the config display
-    this.updateConfig();
+    this.modelToYaml();
   },
   mounted() {
     // Initialize Turnstile when the component is mounted
     this.loadTurnstileScript();
+    
+    // Initialize CodeMirror editor
+    this.initEditor();
   },
   watch: {
-    'model': function () {
-      this.updateConfig();
+    'model': {
+      deep: true,
+      handler() {
+        this.modelToYaml();
+        this.updateConfig();
+      }
     },
-    'model.groups.enabled': function () {
-      this.updateConfig();
-    },
-    'model.users.enableCreate': function () {
-      this.updateConfig();
-    },
-    'model.users.enableReplace': function () {
-      this.updateConfig();
-    },
-    'model.users.enableUpdate': function () {
-      this.updateConfig();
-    },
-    'model.groups.enableCreate': function () {
-      this.updateConfig();
-    },
-    'model.groups.enableReplace': function () {
-      this.updateConfig();
-    },
-    'model.groups.enableUpdate': function () {
-      this.updateConfig();
-    },
-    'model.detectSchema': function () {
-      this.updateConfig();
-    },
-    'model.detectResourceTypes': function () {
-      this.updateConfig();
-    },
-    'model.users.enableDelete': function () {
-      this.updateConfig();
-    },
-    'model.groups.enableDelete': function () {
-      this.updateConfig();
-    },
-    activeTab() {
-      this.updateConfig();
+    showAdvanced(newVal) {
+      if (newVal && this.editor) {
+        // Need to refresh the editor when it becomes visible
+        setTimeout(() => {
+          this.editor.dispatch({type: "refresh"});
+        }, 10);
+      }
     }
   },
   beforeUnmount() {
@@ -384,35 +261,101 @@ export default {
     if (this.turnstileWidgetId) {
       turnstile.reset(this.turnstileWidgetId);
     }
+    // Clean up editor
+    if (this.editor) {
+      this.editor.destroy();
+    }
   },
   methods: {
-    updateUserSortAttributes() {
-      this.model.users.sortAttributes = this.userSortAttributesText
-        .split(',')
-        .map(attr => attr.trim())
-        .filter(attr => attr);
-      this.updateConfig();
-    },
-    updateGroupSortAttributes() {
-      this.model.groups.sortAttributes = this.groupSortAttributesText
-        .split(',')
-        .map(attr => attr.trim())
-        .filter(attr => attr);
-      this.updateConfig();
-    },
-    updateConfig() {
-      const configObj = {
-        detectSchema: this.model.detectSchema,
-        detectResourceTypes: this.model.detectResourceTypes,
-        users: this.model.users,
-        groups: this.model.groups
-      };
+    // Initialize CodeMirror editor
+    initEditor() {
+      if (!this.$refs.editor) {
+        setTimeout(() => this.initEditor(), 100);
+        return;
+      }
 
-      this.config = JSON.stringify(configObj, null, 2);
+      const startState = EditorState.create({
+        doc: this.yamlConfig,
+        extensions: [
+          basicSetup,
+          yaml(),
+          oneDark,
+          EditorView.updateListener.of(update => {
+            if (update.docChanged) {
+              this.yamlConfig = update.state.doc.toString();
+              this.yamlToModel();
+            }
+          })
+        ]
+      });
+
+      this.editor = new EditorView({
+        state: startState,
+        parent: this.$refs.editor
+      });
     },
-    setResourceType(type) {
-      this.activeTab = type;
-      this.updateConfig();
+
+    // Convert model to YAML
+    modelToYaml() {
+      try {
+        this.yamlConfig = jsYaml.dump(this.model, { 
+          indent: 2,
+          lineWidth: -1,
+          noRefs: true
+        });
+        
+        // Update editor content if it exists and content is different
+        if (this.editor && this.editor.state.doc.toString() !== this.yamlConfig) {
+          this.editor.dispatch({
+            changes: {
+              from: 0,
+              to: this.editor.state.doc.length,
+              insert: this.yamlConfig
+            }
+          });
+        }
+        this.yamlError = null;
+      } catch (err) {
+        console.error('Failed to convert model to YAML:', err);
+        this.yamlError = 'Error converting configuration to YAML: ' + err.message;
+      }
+    },
+
+    // Convert YAML to model
+    yamlToModel() {
+      try {
+        const parsed = jsYaml.load(this.yamlConfig);
+        if (parsed && typeof parsed === 'object') {
+          // Preserve existing structure while updating values
+          this.mergeConfig(this.model, parsed);
+          this.updateConfig();
+          this.yamlError = null;
+        } else {
+          this.yamlError = 'Invalid YAML configuration format';
+        }
+      } catch (err) {
+        console.error('Failed to parse YAML:', err);
+        this.yamlError = 'YAML syntax error: ' + err.message;
+      }
+    },
+
+    // Recursively merge configs
+    mergeConfig(target, source) {
+      for (const key in source) {
+        if (key in target) {
+          if (source[key] !== null && typeof source[key] === 'object' && typeof target[key] === 'object') {
+            this.mergeConfig(target[key], source[key]);
+          } else {
+            target[key] = source[key];
+          }
+        } else {
+          target[key] = source[key];
+        }
+      }
+    },
+
+    updateConfig() {
+      this.config = JSON.stringify(this.model, null, 2);
     },
 
     // Load Turnstile script
@@ -551,7 +494,6 @@ export default {
 
 
       });
-
       this.socket.on('test-error', (data) => {
         this.output += `\nError: ${data}`;
       });
@@ -576,17 +518,9 @@ export default {
       const configObject = {
         url: this.url,
         token: this.token,
-        activeTab: this.activeTab,
-        detectSchema: this.model.detectSchema,
-        detectResourceTypes: this.model.detectResourceTypes,
-        users: this.model.users,
-        groups: this.model.groups,
+        ...this.model,
         turnstileToken: this.turnstileToken // Include Turnstile token
       };
-
-      if (this.activeTab === 'Custom' && this.model.custom.enabled) {
-        configObject.custom = this.model.custom;
-      }
 
       this.setupSocket(); // Connect to socket when running tests
 
@@ -1163,6 +1097,56 @@ details[open] > summary ~ * {
 
 .advanced-settings.show {
   max-height: 2000px; /* Large enough to contain all content */
+  opacity: 1;
+}
+
+/* YAML Editor styling */
+.editor-label {
+  margin-bottom: 12px;
+}
+
+.editor-hint {
+  font-size: 12px;
+  color: #5f6368;
+  margin-top: 4px;
+}
+
+.yaml-editor {
+  height: 400px;
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: 'SF Mono', SFMono-Regular, ui-monospace, Consolas, Menlo, monospace;
+  border: 1px solid #dadce0;
+}
+
+.yaml-editor :deep(.cm-editor) {
+  height: 100%;
+}
+
+.yaml-editor :deep(.cm-scroller) {
+  overflow: auto;
+}
+
+.yaml-error {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: rgba(239, 68, 68, 0.05);
+  border-radius: 4px;
+  border-left: 3px solid #ef4444;
+}
+
+/* Advanced settings animation */
+.advanced-settings {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+}
+
+.advanced-settings.show {
+  max-height: 500px; /* Adjust to fit the YAML editor */
   opacity: 1;
 }
 </style>
