@@ -20,6 +20,14 @@ export default defineConfig({
             { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon.png' }
         ]
     ],
+    vite: {
+        server: {
+            allowedHosts: [
+                'verify.scim.local',
+                'localhost'
+            ]
+        }
+    },
     themeConfig: {
         footer: {
             copyright: 'Copyright © 2023-present <a href="https://www.limosa.io">Limosa Digital Identity Solutions</a>'

@@ -23,3 +23,7 @@ For organizations requiring additional assistance, commercial support options ar
 ## Contact
 
 For more information, please visit [verify.scim.dev](https://verify.scim.dev/) or contact us at scim@a11n.nl.
+
+## TODO:
+
+1. Request/response logging. Broadcast, show.

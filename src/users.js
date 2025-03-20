@@ -237,14 +237,14 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             test('Deletes a user', async (t) => {
                 const testAxios = getAxiosInstance(getConfig(), t);
 
-                if (!(sharedState.users?.[0])) {
+                const deleteId = configuration.users.deleteId ?? sharedState.users?.[0]?.id;
+
+                if (!deleteId) {
                     t.skip('Previous test failed or no user created in shared state');
                     return;
                 }
 
-                const user = sharedState.users[0];
-
-                const response = await testAxios.delete(`/Users/${user.id}`);
+                const response = await testAxios.delete(`/Users/${deleteId}`);
                 assert.strictEqual(response.status, 204, 'User deletion should return 204 No Content');
             });
         }

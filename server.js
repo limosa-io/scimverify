@@ -5,6 +5,7 @@ import cors from 'cors';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';  // You may need to install this dependency
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,8 +22,30 @@ const io = new Server(httpServer, {
 
 app.use(express.json());
 
+// Function to verify Turnstile token
+async function verifyTurnstileToken(token, remoteip) {
+    try {
+        const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                secret: process.env.TURNSTILE_SECRET_KEY,
+                response: token,
+                remoteip: remoteip
+            }),
+        });
+
+        const data = await response.json();
+        return data.success === true;
+    } catch (error) {
+        console.error('Turnstile verification error:', error);
+        return false;
+    }
+}
+
 io.on('connection', (socket) => {
-    console.log('Client connected');
 
     // Automatically close the socket after 1 minute
     const oneMinuteTimer = setTimeout(() => {
@@ -30,9 +53,23 @@ io.on('connection', (socket) => {
         socket.disconnect(true);
     }, 60000);
     
-    socket.on('start-tests', (configuration) => {
+    socket.on('start-tests', async (configuration) => {
         if (!configuration.url || !configuration.token) {
             socket.emit('error', 'URL and token are required');
+            return;
+        }
+
+        // Verify Turnstile token if provided
+        if (configuration.turnstileToken) {
+            const ipAddress = socket.handshake.address;
+            const isValid = await verifyTurnstileToken(configuration.turnstileToken, ipAddress);
+            
+            if (!isValid) {
+                socket.emit('error', 'Invalid Turnstile token verification');
+                return;
+            }
+        } else {
+            socket.emit('error', 'Turnstile token is required');
             return;
         }
 

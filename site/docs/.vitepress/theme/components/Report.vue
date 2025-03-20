@@ -1,21 +1,42 @@
 <template>
   <div class="report-container">
     <div class="test-form">
-      <form @submit.prevent="runTests">
-        <!-- SCIM Base URL -->
+      <form @submit.prevent="validateAndRunTests">
+
+        <p>
+          <span>
+            SCIM Verify is a testing tool for validating SCIM 2.0 implementations.<br />
+            Simply provide your SCIM base URL and authentication token.<br />
+            Optionally, select which features to test.
+          </span>
+        </p>
+        
         <div class="form-group">
           <label for="url">SCIM Base URL:</label>
           <input type="url" id="url" v-model="url" required placeholder="Enter the SCIM Base URL">
-        </div>
 
-        <!-- Authorization Token -->
-        <div class="form-group">
-          <label for="token">Authorization Token:</label>
+          <label for="token" style="margin-top: 15px;">Authorization Token:</label>
           <input type="text" id="token" v-model="token" required placeholder="Enter the Authorization Token">
         </div>
 
-        <!-- Resource Type Tabs -->
-        <div class="form-group">
+        <!-- Turnstile widget container -->
+        <div class="turnstile-container">
+          <div id="turnstile-widget" ref="turnstileWidget"></div>
+          <div v-if="turnstileError" class="turnstile-error">
+            Please complete the Cloudflare Turnstile challenge to verify you're human.
+          </div>
+        </div>
+
+        <!-- Run Tests Button -->
+        <button type="submit">Run Tests</button>
+
+        <!-- Advanced settings toggle button -->
+        <button type="button" class="advanced-toggle" @click="showAdvanced = !showAdvanced">
+          {{ showAdvanced ? 'Hide Advanced Settings' : 'Show Advanced Settings' }}
+        </button>
+
+        <!-- Advanced settings -->
+        <div class="form-group" v-if="showAdvanced" style="margin-top: 15px;">
           <div class="tabs">
             <div class="tab" :class="{ active: activeTab === 'Config' }" @click="setResourceType('Config')">
               Config
@@ -55,7 +76,7 @@
               <label for="enable-users-replace">Put</label>
             </div>
             <div class="option" v-if="model.users.enableReplace">
-              <label for="users-replace-id">User ID for Replace:</label>
+              <label for="users-replace-id">User ID for Put:</label>
               <input type="text" id="users-replace-id" v-model="model.users.replaceId" 
               placeholder="Leave empty to auto-detect">
             </div>
@@ -71,6 +92,11 @@
             <div class="option">
               <input type="checkbox" id="enable-users-delete" v-model="model.users.enableDelete">
               <label for="enable-users-delete">Delete</label>
+            </div>
+            <div class="option" v-if="model.users.enableDelete">
+              <label for="users-delete-id">User ID for Delete:</label>
+              <input type="text" id="users-delete-id" v-model="model.users.deleteId" 
+              placeholder="Leave empty to auto-detect">
             </div>
             <div class="option">
               <label for="users-sort-attributes">Sort Attributes to Test:</label>
@@ -109,8 +135,7 @@
           </div>
         </div>
 
-        <!-- Run Tests Button -->
-        <button type="submit">Run Tests</button>
+        
       </form>
     </div>
 
@@ -234,6 +259,7 @@ export default {
       result: new Map(),
       testFiles: [],
       activeTab: 'Config', // Changed default tab
+      showAdvanced: false, // Hide advanced settings by default
 
       // Simple nested model structure with detection options
       model: {
@@ -247,7 +273,8 @@ export default {
           enableUpdate: true,
           enableDelete: true,
           replaceId: null,
-          updateId: null
+          updateId: null,
+          deleteId: null
         },
         groups: {
           enabled: true,
@@ -271,6 +298,11 @@ export default {
 
       // Track active diagnostic tabs per message
       diagnosticTabs: new Map(),
+
+      // Turnstile data
+      turnstileToken: import.meta.env.VITE_TURNSTILE_SITE_KEY,
+      turnstileError: false,
+      turnstileWidgetId: null,
     };
   },
   created() {
@@ -281,6 +313,10 @@ export default {
 
     // Initialize the config display
     this.updateConfig();
+  },
+  mounted() {
+    // Initialize Turnstile when the component is mounted
+    this.loadTurnstileScript();
   },
   watch: {
     'model': function () {
@@ -327,6 +363,10 @@ export default {
     if (this.socket) {
       this.socket.disconnect();
     }
+    // Clean up Turnstile if it was initialized
+    if (this.turnstileWidgetId) {
+      turnstile.reset(this.turnstileWidgetId);
+    }
   },
   methods: {
     updateUserSortAttributes() {
@@ -358,6 +398,57 @@ export default {
       this.updateConfig();
     },
 
+    // Load Turnstile script
+    loadTurnstileScript() {
+      if (window.turnstile) {
+        this.renderTurnstileWidget();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.onload = this.renderTurnstileWidget;
+      document.head.appendChild(script);
+    },
+
+    // Render the Turnstile widget
+    renderTurnstileWidget() {
+      if (!window.turnstile) return;
+      
+      // Use the environment variable for the site key or fallback to a default
+      const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
+      
+      // Reset any existing widget
+      if (this.turnstileWidgetId) {
+        turnstile.reset(this.turnstileWidgetId);
+      }
+      
+      // Render the widget
+      this.turnstileWidgetId = turnstile.render('#turnstile-widget', {
+        sitekey: siteKey,
+        callback: (token) => {
+          this.turnstileToken = token;
+          this.turnstileError = false;
+        },
+        'expired-callback': () => {
+          this.turnstileToken = null;
+          this.turnstileError = true;
+        }
+      });
+    },
+    
+    // Validate Turnstile before running tests
+    validateAndRunTests() {
+      if (!this.turnstileToken) {
+        this.turnstileError = true;
+        return;
+      }
+      
+      this.runTests();
+    },
+
     setupSocket() {
       if (this.socket && this.socket.connected) {
         return; // Socket already connected
@@ -367,10 +458,10 @@ export default {
         this.socket.disconnect(); // Disconnect any existing socket
       }
 
-      this.socket = io('http://localhost:3000'); // Adjust the URL if needed
+      this.socket = io(import.meta.env.VITE_SCIM_TEST_SERVER_URL); // Adjust the URL if needed
 
       this.socket.on('connect', () => {
-        console.log('Connected to WebSocket');
+        // connected
       });
 
       this.socket.on('test-output', (data) => {
@@ -391,7 +482,7 @@ export default {
 
               // Find or create TestResult
               let existing = testFile.findResult(json.data.line, json.data.column);
-              console.log(json);
+              
               if (existing) {
                 existing.messages.push(json);
               } else {
@@ -464,7 +555,8 @@ export default {
         detectSchema: this.model.detectSchema,
         detectResourceTypes: this.model.detectResourceTypes,
         users: this.model.users,
-        groups: this.model.groups
+        groups: this.model.groups,
+        turnstileToken: this.turnstileToken // Include Turnstile token
       };
 
       if (this.activeTab === 'Custom' && this.model.custom.enabled) {
@@ -477,7 +569,19 @@ export default {
       this.testFiles = [];
       this.diagnosticTabs.clear(); // Clear previous tab states
       this.socket.emit('start-tests', configObject);
+      
+      // Reset Turnstile after submitting
+      this.resetTurnstile();
     },
+    
+    // Reset Turnstile widget
+    resetTurnstile() {
+      if (window.turnstile && this.turnstileWidgetId) {
+        turnstile.reset(this.turnstileWidgetId);
+        this.turnstileToken = null;
+      }
+    },
+    
     formatJSON(json) {
       return JSON.stringify(json, null, 2);
     },
@@ -497,35 +601,43 @@ export default {
 
 <style scoped>
 .report-container {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 0 20px;
   width: 100%;
   box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: #3c4043;
 }
 
-@media (max-width: 1240px) {
+@media (max-width: 1040px) {
   .report-container {
     max-width: 100%;
   }
 }
 
-/* Common styles */
-.test-form, .test-output {
-  background-color: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #eaeaea;
-}
-
+/* Chrome-like form styling */
 .test-form {
   margin: 28px 0;
-  padding: 24px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
 }
 
+/* Chrome-style section card */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  overflow: hidden;
+}
+
+/* URL and Token inputs section */
+.form-group:nth-child(-n+2) {
+  padding: 20px 24px;
 }
 
 /* Form elements */
@@ -533,123 +645,124 @@ label {
   display: block;
   font-weight: 500;
   margin-bottom: 8px;
-  color: #333;
-  font-size: 0.95rem;
+  color: #3c4043;
+  font-size: 13px;
 }
 
 input[type="url"],
 input[type="text"],
 textarea {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
   font-size: 14px;
-  transition: all 0.2s ease;
-  background-color: #fafafa;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+  background-color: #ffffff;
+  color: #3c4043;
+  box-shadow: none;
   
   &:focus {
     outline: none;
-    border-color: #3182ce;
-    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
-    background-color: #ffffff;
+    border-color: #1a73e8;
+    box-shadow: 0 1px 2px rgba(26, 115, 232, 0.1);
   }
   
   &::placeholder {
-    color: #a0aec0;
+    color: #80868b;
   }
 }
 
-/* Tabs styling */
+/* Tabs styling - Chrome style */
 .tabs {
   display: flex;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #dadce0;
   margin-bottom: 0;
-  gap: 4px;
-  background-color: #f8fafc;
-  border-radius: 8px 8px 0 0;
-  padding: 4px 4px 0 4px;
+  gap: 0;
+  background-color: #ffffff;
+  padding: 0;
 }
 
 .tab {
-  padding: 10px 20px;
+  padding: 14px 16px 14px;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
-  border-bottom: none;
+  border: none;
+  border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  border-radius: 6px 6px 0 0;
-  transition: all 0.2s ease;
-  background-color: #f1f5f9;
+  border-radius: 0;
+  transition: all 0.15s ease;
+  background-color: transparent;
   font-weight: 500;
   user-select: none;
   font-size: 14px;
-  color: #64748b;
+  color: #5f6368;
+  flex: 1;
+  text-align: center;
   
   &:hover {
-    background-color: #f8fafc;
-    color: #2563eb;
+    background-color: rgba(26, 115, 232, 0.04);
+    color: #1a73e8;
   }
   
   &.active {
-    background-color: #fff;
-    border-color: #e2e8f0;
-    border-bottom-color: white;
-    font-weight: 600;
-    color: #2563eb;
-    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.03);
+    background-color: transparent;
+    border-bottom: 2px solid #1a73e8;
+    font-weight: 500;
+    color: #1a73e8;
+    box-shadow: none;
   }
 }
 
 .tab-content {
-  padding: 20px;
+  padding: 24px;
   background-color: white;
-  border: 1px solid #e2e8f0;
   border-top: none;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  border-radius: 0;
+  box-shadow: none;
 }
 
-/* Checkbox styling */
+/* Checkbox styling - Chrome style */
 .option {
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
   
   label {
     display: inline-block;
-    font-weight: 500;
+    font-weight: 400;
     cursor: pointer;
-    color: #4b5563;
+    color: #3c4043;
     user-select: none;
     width: 300px;
-    font-size: 0.9rem;
+    font-size: 14px;
+    margin-bottom: 0;
   }
   
   input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
-    border: 1px solid #cbd5e0;
-    border-radius: 4px;
-    margin-right: 10px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #5f6368;
+    border-radius: 2px;
+    margin-right: 12px;
     cursor: pointer;
     vertical-align: middle;
-    transition: all 0.2s;
+    transition: all 0.15s;
     background-color: white;
+    position: relative;
     
     &:checked {
-      background-color: #2563eb;
-      border-color: #2563eb;
+      background-color: #1a73e8;
+      border-color: #1a73e8;
       
       &::after {
         content: '';
         position: absolute;
-        left: 5px;
-        top: 2px;
-        width: 6px;
-        height: 10px;
+        left: 4px;
+        top: 1px;
+        width: 4px;
+        height: 8px;
         border: solid white;
         border-width: 0 2px 2px 0;
         transform: rotate(45deg);
@@ -657,38 +770,64 @@ textarea {
     }
     
     &:hover {
-      border-color: #93c5fd;
+      border-color: #1a73e8;
     }
     
     &:focus {
       outline: none;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.25);
     }
   }
 }
 
-/* Button styling */
+/* Button styling - Chrome style */
 button {
-  background-color: #2563eb;
+  background-color: #1a73e8;
   color: white;
-  padding: 12px 24px;
+  padding: 8px 24px;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
-  font-size: 15px;
-  letter-spacing: 0.3px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  letter-spacing: 0.25px;
+  margin-top: 8px;
   
   &:hover {
-    background-color: #1d4ed8;
-    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.25);
+    background-color: #1765cc;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
   }
   
   &:active {
-    transform: translateY(1px);
-    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+    background-color: #185abc;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  }
+}
+
+/* Advanced settings toggle button */
+.advanced-toggle {
+  background-color: transparent;
+  color: #1a73e8;
+  padding: 8px 16px;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  letter-spacing: 0.25px;
+  margin-top: 16px;
+  margin-left: 12px;
+  
+  &:hover {
+    background-color: rgba(26, 115, 232, 0.04);
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.1);
+  }
+  
+  &:active {
+    background-color: rgba(26, 115, 232, 0.08);
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.1);
   }
 }
 
@@ -696,21 +835,25 @@ button {
 .test-output {
   padding: 20px;
   margin-top: 30px;
-  border-color: #e4e4e7;
+  border-color: #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
   
   h2 {
     margin: 0 0 20px 0;
-    font-size: 1.4em;
-    color: #18181b;
+    font-size: 16px;
+    color: #3c4043;
     padding-bottom: 12px;
-    border-bottom: 1px solid #f4f4f5;
+    border-bottom: 1px solid #dadce0;
+    font-weight: 500;
   }
 }
 
+/* The rest of the existing styles for results, etc. */
 .file-item {
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #f4f4f5;
+  border-bottom: 1px solid #dadce0;
 }
 
 .result-item {
@@ -889,12 +1032,20 @@ details[open] > summary ~ * {
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .test-form {
+    padding: 0;
+  }
+  
+  .form-group:nth-child(-n+2) {
     padding: 16px;
   }
   
   .tab {
-    padding: 8px 12px;
+    padding: 12px 8px;
     font-size: 13px;
+  }
+  
+  .tab-content {
+    padding: 16px;
   }
   
   .option label {
@@ -904,5 +1055,30 @@ details[open] > summary ~ * {
   button {
     width: 100%;
   }
+
+  .advanced-toggle {
+    margin-left: 0;
+    width: 100%;
+    margin-top: 16px;
+  }
+
+  .turnstile-container {
+    margin: 16px 0;
+  }
+}
+
+/* Turnstile container styling */
+.turnstile-container {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+}
+
+.turnstile-error {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 8px;
+  font-weight: 500;
 }
 </style>
