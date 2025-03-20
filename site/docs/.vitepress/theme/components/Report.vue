@@ -3,21 +3,22 @@
     <div class="test-form">
       <form @submit.prevent="validateAndRunTests">
 
-        <p>
-          <span>
+       
+        
+        <div class="form-group">
+
+          <p>
             SCIM Verify is a testing tool for validating SCIM 2.0 implementations.<br />
             Simply provide your SCIM base URL and authentication token.<br />
             Optionally, select which features to test.
-          </span>
         </p>
-        
-        <div class="form-group">
+
           <label for="url">SCIM Base URL:</label>
           <input type="url" id="url" v-model="url" required placeholder="Enter the SCIM Base URL">
 
           <label for="token" style="margin-top: 15px;">Authorization Token:</label>
           <input type="text" id="token" v-model="token" required placeholder="Enter the Authorization Token">
-        </div>
+
 
         <!-- Turnstile widget container -->
         <div class="turnstile-container">
@@ -35,8 +36,11 @@
           {{ showAdvanced ? 'Hide Advanced Settings' : 'Show Advanced Settings' }}
         </button>
 
+        </div>
+
+
         <!-- Advanced settings -->
-        <div class="form-group" v-if="showAdvanced" style="margin-top: 15px;">
+        <div class="form-group advanced-settings" :class="{ 'show': showAdvanced }">
           <div class="tabs">
             <div class="tab" :class="{ active: activeTab === 'Config' }" @click="setResourceType('Config')">
               Config
@@ -71,6 +75,17 @@
               <input type="checkbox" id="enable-users-create" v-model="model.users.enableCreate">
               <label for="enable-users-create">Create</label>
             </div>
+
+            <div class="option" v-if="model.users.enableCreate">
+              <label for="create-user-template">Example User JSON:</label>
+              <textarea 
+                id="create-user-template" 
+                v-model="model.users.createTemplate" 
+                placeholder="Provide example JSON for user creation (optional)"
+                rows="3"></textarea>
+              <div class="hint">Leave empty to use default template</div>
+            </div>
+
             <div class="option">
               <input type="checkbox" id="enable-users-replace" v-model="model.users.enableReplace">
               <label for="enable-users-replace">Put</label>
@@ -251,8 +266,8 @@ class TestFile {
 export default {
   data() {
     return {
-      url: 'https://api.scim.dev/scim/v2',
-      token: 'NGcR0rU8OPpUicbvnrbTJImTCPuQAnGUopECdN8w3Q8PPnYMJwkfcFdRt6SP',
+      url: '',
+      token: '',
       config: '',
       output: '',
       socket: null,
@@ -269,6 +284,7 @@ export default {
           enabled: true,
           sortAttributes: ['userName'],
           enableCreate: true,
+          createTemplate: null,
           enableReplace: true,
           enableUpdate: true,
           enableDelete: true,
@@ -410,7 +426,7 @@ export default {
       script.async = true;
       script.defer = true;
       script.onload = this.renderTurnstileWidget;
-      document.head.appendChild(script);
+      document.body.appendChild(script);
     },
 
     // Render the Turnstile widget
@@ -547,6 +563,8 @@ export default {
     },
     runTests() {
       this.output = ''; // Clear previous output
+
+      this.showAdvanced = false;
 
       const configObject = {
         url: this.url,
@@ -722,6 +740,52 @@ textarea {
 }
 
 /* Checkbox styling - Chrome style */
+.option {
+  margin-bottom: 18px;
+  display: flex;
+  align-items: flex-start; /* Changed from center to flex-start */
+  flex-wrap: wrap; /* Added to allow wrapping for longer elements */
+  
+  label {
+    display: inline-block;
+    font-weight: 400;
+    cursor: pointer;
+    color: #3c4043;
+    user-select: none;
+    width: 300px;
+    font-size: 14px;
+    margin-bottom: 8px; /* Added margin bottom */
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    font-family: 'SF Mono', SFMono-Regular, ui-monospace, Consolas, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 12px;
+    background-color: #f9fafb;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    resize: vertical;
+    
+    &:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 1px 2px rgba(26, 115, 232, 0.1);
+    }
+  }
+
+  .hint {
+    width: 100%;
+    margin-top: 6px;
+    color: #5f6368;
+    font-size: 12px;
+    font-style: italic;
+  }
+  
+}
+
 .option {
   margin-bottom: 18px;
   display: flex;
@@ -1080,5 +1144,18 @@ details[open] > summary ~ * {
   font-size: 14px;
   margin-top: 8px;
   font-weight: 500;
+}
+
+/* Advanced settings animation */
+.advanced-settings {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+}
+
+.advanced-settings.show {
+  max-height: 2000px; /* Large enough to contain all content */
+  opacity: 1;
 }
 </style>

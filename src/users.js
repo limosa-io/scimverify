@@ -23,6 +23,51 @@ function createUserBody(user, schema, schemaExtensions) {
 
 }
 
+function ensureCoreSchemaAttributesAreSchemaless(user){
+    if(!user){
+        return null;
+    }
+
+    if(!user['schemas']){
+        user['schemas'] = ['urn:ietf:params:scim:schemas:core:2.0:User'];
+    }
+
+    i(user['urn:ietf:params:scim:schemas:core:2.0:User']){
+        // merge contents of user['urn:ietf:params:scim:schemas:core:2.0:User] with user
+        const coreSchemaContent = user['urn:ietf:params:scim:schemas:core:2.0:User'];
+        for (const key in coreSchemaContent) {
+            user[key] = coreSchemaContent[key];
+        }
+        delete user['urn:ietf:params:scim:schemas:core:2.0:User'];
+    }
+}
+
+function ensureExplicitSchemas(user){
+    if(!user){
+        return null;
+    }
+
+    if(!user['schemas']){
+        user['schemas'] = ['urn:ietf:params:scim:schemas:core:2.0:User'];
+    }
+
+    // move each attribute that does not contain a colon to user[''urn:ietf:params:scim:schemas:core:2.0:User']
+    const coreAttrs = {};
+    for (const key in user) {
+        if (!key.includes(':') && !['schemas', 'id', 'meta'].includes(key)) {
+            coreAttrs[key] = user[key];
+            delete user[key];
+        }
+    }
+
+    if (Object.keys(coreAttrs).length > 0) {
+        user['urn:ietf:params:scim:schemas:core:2.0:User'] = user['urn:ietf:params:scim:schemas:core:2.0:User'] || {};
+        Object.assign(user['urn:ietf:params:scim:schemas:core:2.0:User'], coreAttrs);
+    }
+    return user;
+
+}
+
 function runTests(userSchema, userSchemaExtensions = [], configuration) {
     test.describe('Users', () => {
 
@@ -118,10 +163,19 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         });
 
         if (configuration?.users?.enableCreate) {
+
+            if(configuration.createTemplate){
+                test('Confirm example user is valid SCIM format', () => {
+                    const user = configuration.createTemplate;
+                    verifyUser(user, userSchema, userSchemaExtensions);
+
+                });
+            }
+
             test('Creates a new user - Alternative 1', async (t) => {
                 const testAxios = getAxiosInstance(getConfig(), t);
                 // find required attributes from the schema
-                const newUser = {
+                const newUser = ensureCoreSchemaAttributesAreSchemaless(configuration.createTemplate) ?? {
                     schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
                     userName: `testuser${Math.floor(Math.random() * 10000)}`,
                     emails: [
@@ -148,7 +202,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                 const testAxios = getAxiosInstance(getConfig(), t);
                 // find required attributes from the schema
                 const userName = `testuser${Math.floor(Math.random() * 10000)}`;
-                const newUser = {
+                const newUser = ensureExplicitSchemas(configuration.createTemplate) ?? {
                     schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
                     'urn:ietf:params:scim:schemas:core:2.0:User': {
                         userName: userName,
