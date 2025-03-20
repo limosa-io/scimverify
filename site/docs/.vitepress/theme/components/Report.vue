@@ -222,10 +222,11 @@
 import { io } from 'socket.io-client';
 
 class TestResult {
-  constructor(file, line, column) {
+  constructor(file, line, column, name) {
     this.file = file;
     this.line = line;
     this.column = column;
+    this.name = name;
     this.messages = [];
   }
 
@@ -258,8 +259,8 @@ class TestFile {
     this.results.push(result);
   }
 
-  findResult(line, column) {
-    return this.results.find(r => r.line === line && r.column === column);
+  findResult(line, column, name) {
+    return this.results.find(r => r.line === line && r.column === column && r.name === name);
   }
 }
 
@@ -485,6 +486,7 @@ export default {
         data.split('\n').filter(e => e.length > 0).forEach(line => {
           try {
             const json = JSON.parse(line);
+            console.log(json);
             // Fix the syntax error in the following line
 
             // append to results, or update existing entry if it has the same file, line and column
@@ -497,7 +499,11 @@ export default {
               }
 
               // Find or create TestResult
-              let existing = testFile.findResult(json.data.line, json.data.column);
+              let existing = testFile.findResult(
+                json.data.line,
+                json.data.column,
+                json.data.name ?? json.data.message?.test_name
+              );
               
               if (existing) {
                 existing.messages.push(json);
@@ -505,7 +511,8 @@ export default {
                 let r = new TestResult(
                   json.data.file,
                   json.data.line,
-                  json.data.column
+                  json.data.column,
+                  json.data.name ?? json.data.message?.test_name
                 );
                 r.messages.push(json);
                 testFile.addResult(r);

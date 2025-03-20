@@ -1,0 +1,29 @@
+{
+    "detectSchema": true,
+    "detectResourceTypes": true,
+    "users": {
+        "enabled": true,
+        "sortAttributes": ["userName"],
+        "enableCreate": true,
+        "createTemplate": null,
+        "enableReplace": true,
+        "enableUpdate": true,
+        "enableDelete": true,
+        "replaceId": null,
+        "updateId": null,
+        "deleteId": null
+    },
+    "groups": {
+        "enabled": true,
+        "sortAttributes": ["displayName"],
+        "enableCreate": true,
+        "enableReplace": true,
+        "enableUpdate": true,
+        "enableDelete": true
+    },
+    "custom": {
+        "enabled": false,
+        "schema": "",
+        "sortAttributes": []
+    }
+}

@@ -19,6 +19,146 @@ try {
 let defaultConfig = {
     baseURL: process.env.BASE_URL,
     token: process.env.TOKEN,
+
+
+    creations: [
+        {
+            request: {
+                schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+                'urn:ietf:params:scim:schemas:core:2.0:User': {
+                    userName: 'barbara jensen',
+                    emails: [
+                        {
+                            value: 'barbara.jensen@example.com'
+                        }
+                    ]
+                }
+            },
+            response: {
+                "type": "object",
+                "properties": {
+                    "schemas": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "contains": {
+                            "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+                        }
+                    },
+                    "userName": { "type": "string", "const": "barbara jensen" },
+                },
+                "required": ["userName", "schemas"],
+                "additionalProperties": true
+            }
+        },
+        {
+            request: {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:core:2.0:User"
+                ],
+                "userName": "testuser6238",
+                "emails": [
+                    {
+                        "value": "barbara.jensen@example.com"
+                    }
+                ]
+            },
+            response: {
+                "type": "object",
+                "properties": {
+                    "schemas": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "contains": {
+                            "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+                        }
+                    },
+                    "userName": { "type": "string", "const": "testuser6238" },
+                    "emails": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "value": { "type": "string", "const": "barbara.jensen@example.com" }
+                            }
+                        }
+                    }
+                },
+                "required": ["userName", "schemas", "emails"],
+                "additionalProperties": true
+            }
+        }
+    ],
+
+    puts: [
+        {
+            request: {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:core:2.0:User"
+                ],
+                "userName": "testuser6238",
+                "emails": [
+                    {
+                        "value": "barbara.jensen@example.com"
+                    }
+                ]
+            },
+            response: {
+                "type": "object",
+                "properties": {
+                    "schemas": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "contains": {
+                            "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+                        }
+                    },
+                    "userName": { "type": "string", "const": "testuser6238" },
+                    "emails": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "value": { "type": "string", "const": "barbara.jensen@example.com" }
+                            }
+                        }
+                    }
+                },
+                "required": ["userName", "schemas", "emails"],
+                "additionalProperties": true
+            }
+        }
+    ],
+
+    patches: [
+        {
+            request: {
+                schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+                Operations: [
+                    {
+                        op: 'replace',
+                        path: 'userName',
+                        value: `JohnDoe`
+                    }
+                ]
+            },
+            response: {
+                "type": "object",
+                "properties": {
+                    "schemas": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "contains": {
+                            "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+                        }
+                    },
+                    "userName": { "type": "string", "const": "JohnDoe" }
+                },
+                "required": ["userName", "schemas"],
+                "additionalProperties": true
+            }
+        }
+    ],
+
     ...configFromEnv
 };
 
@@ -41,7 +181,7 @@ export function getAxiosInstance(config = defaultConfig, testContext = null) {
         },
         validateStatus: function (status) {
             // Return true for any status code (don't throw errors)
-            return true; 
+            return true;
         }
     });
 
@@ -50,13 +190,14 @@ export function getAxiosInstance(config = defaultConfig, testContext = null) {
     // Add request interceptor to log the raw HTTP request
     instance.interceptors.request.use(request => {
         const requestLog = {
+            test_name: t?.name,
             type: 'request',
             method: request.method?.toUpperCase(),
             url: `${request.baseURL}${request.url}`,
             headers: request.headers,
             body: request.data || null
         };
-        
+
         t?.diagnostic(requestLog);
 
         return request;
@@ -65,25 +206,27 @@ export function getAxiosInstance(config = defaultConfig, testContext = null) {
     // Add response interceptor to log the raw HTTP response
     instance.interceptors.response.use(response => {
         const responseLog = {
+            test_name: t?.name,
             type: 'response',
             status: response.status,
             statusText: response.statusText,
             headers: response.headers,
             body: response.data
         };
-        
+
         t?.diagnostic(responseLog)
         return response;
     }, error => {
         if (error.response) {
             const errorLog = {
+                test_name: t?.name,
                 type: 'error',
                 status: error.response.status,
                 statusText: error.response.statusText,
                 headers: error.response.headers,
                 body: error.response.data
             };
-            
+
             t?.diagnostic(errorLog)
         }
         return Promise.reject(error);
@@ -103,11 +246,11 @@ export function getConfig() {
  */
 export function testWithAxios(name, testFn) {
     // Get the caller's information to preserve the original file location in test reports
-    
-    return test(name, async function(t) {
+
+    return test(name, async function (t) {
         // Create a new axios instance for this specific test
         const testAxios = getAxiosInstance(getConfig(), t);
-        
+
         // Call original test function with axios instance and test context
         return testFn.apply(this, [testAxios, t]);
     });
