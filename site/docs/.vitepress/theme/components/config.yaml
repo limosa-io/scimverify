@@ -365,9 +365,3 @@ groups:
         }
   delete_tests:
     - id: AUTO
-
-custom:
-  enabled: false
-  schema: ""
-  sortAttributes: []
-

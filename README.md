@@ -26,4 +26,4 @@ For more information, please visit [verify.scim.dev](https://verify.scim.dev/) o
 
 ## TODO:
 
-1. Request/response logging. Broadcast, show.
+1. Generate example requests and response schemas based on Schema and Resource Types. Leverage AI??
