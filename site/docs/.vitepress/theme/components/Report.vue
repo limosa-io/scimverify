@@ -102,15 +102,22 @@
             </div>
 
             <div
-              v-for="response in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'response' && m.data.line == msg.data.line)"
               v-if="getActiveDiagnosticTab(msg.id) === 'response'" class="tab-content">
+              <div v-for="response in r?.messages.filter((m, index) => {
+              const msgIndex = r.messages.findIndex(item => item.id === msg.id);
+              return ['test:diagnostic'].includes(m.type) && 
+                m.data.message.type == 'response' && 
+                m.data.message.requestId === msg.data.message.id && 
+                index > msgIndex;
+              }).slice(0, 1)">
               <div>HTTP {{ response.data.message.status }} {{ response.data.message.statusText }}</div>
               <div v-if="response.data.message.headers">
                 <span v-for="(value, key) in response.data.message.headers" :key="key">
-                  <strong>{{ key }}:</strong> {{ value }}<br />
+                <strong>{{ key }}:</strong> {{ value }}<br />
                 </span>
               </div>
               <pre v-if="response.data.message.body">{{ formatJSON(response.data.message.body) }}</pre>
+              </div>
             </div>
           </div>
         </details>
