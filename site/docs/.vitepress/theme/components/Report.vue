@@ -78,17 +78,17 @@
             v-for="msg in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'request')"
             class="diagnostic-tabs">
             <div class="tabs">
-              <div class="tab" :class="{ active: getActiveDiagnosticTab(msg.data.line) === 'request' }"
-                @click="setDiagnosticTab(msg.data.line, 'request')">
+              <div class="tab" :class="{ active: getActiveDiagnosticTab(msg.id) === 'request' }"
+                @click="setDiagnosticTab(msg.id, 'request')">
                 Request
               </div>
-              <div class="tab" :class="{ active: getActiveDiagnosticTab(msg.data.line) === 'response' }"
-                @click="setDiagnosticTab(msg.data.line, 'response')">
+              <div class="tab" :class="{ active: getActiveDiagnosticTab(msg.id) === 'response' }"
+                @click="setDiagnosticTab(msg.id, 'response')">
                 Response
               </div>
             </div>
 
-            <div v-if="getActiveDiagnosticTab(msg.data.line) === 'request'" class="tab-content">
+            <div v-if="getActiveDiagnosticTab(msg.id) === 'request'" class="tab-content">
               <div class="http-request">
                 <div class="request-line"><strong>{{ msg.data.message.method }}</strong> {{ msg.data.message.url }}
                   HTTP/1.1</div>
@@ -103,7 +103,7 @@
 
             <div
               v-for="response in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'response' && m.data.line == msg.data.line)"
-              v-if="getActiveDiagnosticTab(msg.data.line) === 'response'" class="tab-content">
+              v-if="getActiveDiagnosticTab(msg.id) === 'response'" class="tab-content">
               <div>HTTP {{ response.data.message.status }} {{ response.data.message.statusText }}</div>
               <div v-if="response.data.message.headers">
                 <span v-for="(value, key) in response.data.message.headers" :key="key">
@@ -126,6 +126,7 @@ import { EditorState } from '@codemirror/state';
 import { yaml } from '@codemirror/lang-yaml';
 import { oneDark } from '@codemirror/theme-one-dark';
 import jsYaml from 'js-yaml';
+import defaultConfig from './config.yaml?raw';
 
 class TestResult {
   constructor(file, line, column, name) {
@@ -172,6 +173,14 @@ class TestFile {
 
 export default {
   data() {
+    // Parse the default config
+    let defaultModel = {};
+    try {
+      defaultModel = jsYaml.load(defaultConfig) || {};
+    } catch (err) {
+      console.error('Failed to parse default config:', err);
+    }
+
     return {
       url: '',
       token: '',
@@ -185,36 +194,8 @@ export default {
       yamlConfig: '',
       yamlError: null,
 
-      // Model structure with detection options
-      model: {
-        detectSchema: true,
-        detectResourceTypes: true,
-        users: {
-          enabled: true,
-          sortAttributes: ['userName'],
-          enableCreate: true,
-          createTemplate: null,
-          enableReplace: true,
-          enableUpdate: true,
-          enableDelete: true,
-          replaceId: null,
-          updateId: null,
-          deleteId: null
-        },
-        groups: {
-          enabled: true,
-          sortAttributes: ['displayName'],
-          enableCreate: true,
-          enableReplace: true,
-          enableUpdate: true,
-          enableDelete: true
-        },
-        custom: {
-          enabled: false,
-          schema: '',
-          sortAttributes: []
-        }
-      },
+      // Model structure with detection options, initialized with default config
+      model: defaultModel,
 
       // Track active diagnostic tabs per message
       diagnosticTabs: new Map(),
@@ -226,7 +207,8 @@ export default {
     };
   },
   created() {
-    // Initialize the config display
+    // If model is empty (config failed to load), set reasonable defaults
+        // Initialize the config display
     this.modelToYaml();
   },
   mounted() {
@@ -429,8 +411,8 @@ export default {
         data.split('\n').filter(e => e.length > 0).forEach(line => {
           try {
             const json = JSON.parse(line);
-            console.log(json);
-            // Fix the syntax error in the following line
+
+            json.id = Math.random().toString(36).substring(2, 15)
 
             // append to results, or update existing entry if it has the same file, line and column
             if (json.data.nesting >= 0) {

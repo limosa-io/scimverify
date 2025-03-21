@@ -19,54 +19,17 @@ function verifyUser(user, schema, schemaExtensions = []) {
     });
 }
 
-function createUserBody(user, schema, schemaExtensions) {
-    // find all required attributes
-
-}
-
-function ensureCoreSchemaAttributesAreSchemaless(user) {
-    if (!user) {
-        return null;
-    }
-
-    if (!user['schemas']) {
-        user['schemas'] = ['urn:ietf:params:scim:schemas:core:2.0:User'];
-    }
-
-    if (user['urn:ietf:params:scim:schemas:core:2.0:User']) {
-        // merge contents of user['urn:ietf:params:scim:schemas:core:2.0:User] with user
-        const coreSchemaContent = user['urn:ietf:params:scim:schemas:core:2.0:User'];
-        for (const key in coreSchemaContent) {
-            user[key] = coreSchemaContent[key];
+async function lookupUserId(configuration, t){
+    const axios = getAxiosInstance(configuration, t);
+    try {
+        const response = await axios.get('/Users?count=1');
+        if (response.data.Resources && response.data.Resources.length > 0) {
+            return response.data.Resources[0].id;
         }
-        delete user['urn:ietf:params:scim:schemas:core:2.0:User'];
+    } catch (error) {
+        t.diagnostic(`Error looking up user ID: ${error.message}`);
     }
-}
-
-function ensureExplicitSchemas(user) {
-    if (!user) {
-        return null;
-    }
-
-    if (!user['schemas']) {
-        user['schemas'] = ['urn:ietf:params:scim:schemas:core:2.0:User'];
-    }
-
-    // move each attribute that does not contain a colon to user[''urn:ietf:params:scim:schemas:core:2.0:User']
-    const coreAttrs = {};
-    for (const key in user) {
-        if (!key.includes(':') && !['schemas', 'id', 'meta'].includes(key)) {
-            coreAttrs[key] = user[key];
-            delete user[key];
-        }
-    }
-
-    if (Object.keys(coreAttrs).length > 0) {
-        user['urn:ietf:params:scim:schemas:core:2.0:User'] = user['urn:ietf:params:scim:schemas:core:2.0:User'] || {};
-        Object.assign(user['urn:ietf:params:scim:schemas:core:2.0:User'], coreAttrs);
-    }
-    return user;
-
+    return null;
 }
 
 function runTests(userSchema, userSchemaExtensions = [], configuration) {
@@ -173,12 +136,11 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                 });
             }
 
-            console.log(configuration.users);
-
             for (const [index, creation] of configuration.users.post_tests.entries()) {
                 test(`Creates a new user - Alternative ${index + 1}`, async (t) => {
                     const testAxios = getAxiosInstance(getConfig(), t);
                     // find required attributes from the schema
+
                     const response = await testAxios.post('/Users', creation.request);
                     assert.strictEqual(response.status, 201, 'User creation should return 201 Created');
 
@@ -200,11 +162,13 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                 test('Updates a user using PUT', async (t) => {
                     const testAxios = getAxiosInstance(getConfig(), t);
 
-                    const replaceId = !update.id || update.id == 'AUTO' ? sharedState.users?.[0]?.id : update.id;
+                    let replaceId = update.id;
+                    if (!replaceId || replaceId === 'AUTO') {
+                        replaceId = await lookupUserId(getConfig(), t);
+                    }
 
-                    // TODO: get user from retrieved users, do not use created user
                     if (!replaceId) {
-                        t.skip('Previous test failed or no user created in shared state');
+                        t.skip('Could not find a valid user ID for the update test');
                         return;
                     }
 
@@ -222,14 +186,17 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
         }
 
         if (configuration?.users?.operations.includes('PATCH')) {
-            for(const [index, patch] of configuration.users.patches.entries()) {
+            for(const [index, patch] of configuration.users.patch_tests.entries()) {
                 test('Updates a user using PATCH - Alternative ', async (t) => {
                     const testAxios = getAxiosInstance(getConfig(), t);
 
-                    const replaceId = !patch.id || patch.id == 'AUTO' ? sharedState.users?.[0]?.id : patch.id;
+                    let replaceId = patch.id;
+                    if (!replaceId || replaceId === 'AUTO') {
+                        replaceId = await lookupUserId(getConfig(), t);
+                    }
 
                     if (!replaceId) {
-                        t.skip('Previous test failed or no user created in shared state');
+                        t.skip('Could not find a valid user ID for the patch test');
                         return;
                     }
 
@@ -252,10 +219,13 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                 test('Deletes a user', async (t) => {
                     const testAxios = getAxiosInstance(getConfig(), t);
 
-                    const deleteId = !deletion.id || deletion.id == 'AUTO' ? sharedState.createdUser?.id : deletion.id;
+                    let deleteId = deletion.id;
+                    if (!deleteId || deleteId === 'AUTO') {
+                        deleteId = await lookupUserId(getConfig(), t);
+                    }
 
                     if (!deleteId) {
-                        t.skip('Previous test failed or no user created in shared state');
+                        t.skip('Could not find a valid user ID for the delete test');
                         return;
                     }
 

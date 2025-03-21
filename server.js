@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
         // }
 
         const testProcess = spawn('node', [
-            path.resolve(__dirname, 'index.js')
+            path.resolve(__dirname, 'index-json.js')
         ], {
             env: {
                 BASE_URL: configuration.url,

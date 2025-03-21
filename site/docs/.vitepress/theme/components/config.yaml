@@ -191,12 +191,180 @@ users:
 
 groups:
   enabled: true
+  operations:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
   sortAttributes:
     - displayName
-  enableCreate: true
-  enableReplace: true
-  enableUpdate: true
-  enableDelete: true
+
+  post_tests:
+    - request:
+        {
+          "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+          "displayName": "TestGroup"
+        }
+      response:
+        {
+          "type": "object",
+          "properties": {
+            "schemas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "contains": {
+                "const": "urn:ietf:params:scim:schemas:core:2.0:Group"
+              }
+            },
+            "displayName": {
+              "type": "string",
+              "const": "TestGroup"
+            }
+          },
+          "required": [
+            "displayName",
+            "schemas"
+          ],
+          "additionalProperties": true
+        }
+    - request:
+        {
+          "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+          "displayName": "Engineering",
+          "members": [
+            {
+              "value": "AUTO"
+            }
+          ]
+        }
+      response:
+        {
+          "type": "object",
+          "properties": {
+            "schemas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "contains": {
+                "const": "urn:ietf:params:scim:schemas:core:2.0:Group"
+              }
+            },
+            "displayName": {
+              "type": "string",
+              "const": "Engineering"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "displayName",
+            "schemas",
+            "members"
+          ],
+          "additionalProperties": true
+        }
+
+  put_tests:
+    - id: AUTO
+      request:
+        {
+          "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+          "displayName": "UpdatedGroup",
+          "members": [
+            {
+              "value": "AUTO"
+            }
+          ]
+        }
+      response:
+        {
+          "type": "object",
+          "properties": {
+            "schemas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "contains": {
+                "const": "urn:ietf:params:scim:schemas:core:2.0:Group"
+              }
+            },
+            "displayName": {
+              "type": "string",
+              "const": "UpdatedGroup"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "displayName",
+            "schemas",
+            "members"
+          ],
+          "additionalProperties": true
+        }
+
+  patch_tests:
+    - id: AUTO
+      request:
+        {
+          "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+          "Operations": [
+            {
+              "op": "replace",
+              "path": "displayName",
+              "value": "NewGroupName"
+            }
+          ]
+        }
+      response:
+        {
+          "type": "object",
+          "properties": {
+            "schemas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "contains": {
+                "const": "urn:ietf:params:scim:schemas:core:2.0:Group"
+              }
+            },
+            "displayName": {
+              "type": "string",
+              "const": "NewGroupName"
+            }
+          },
+          "required": [
+            "displayName",
+            "schemas"
+          ],
+          "additionalProperties": true
+        }
+  delete_tests:
+    - id: AUTO
 
 custom:
   enabled: false
