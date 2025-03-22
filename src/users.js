@@ -19,17 +19,25 @@ function verifyUser(user, schema, schemaExtensions = []) {
     });
 }
 
-async function lookupUserId(configuration, t){
+
+
+
+async function lookupUser(configuration, t){
     const axios = getAxiosInstance(configuration, t);
     try {
         const response = await axios.get('/Users?count=1');
         if (response.data.Resources && response.data.Resources.length > 0) {
-            return response.data.Resources[0].id;
+            return response.data.Resources[0];
         }
     } catch (error) {
-        t.diagnostic(`Error looking up user ID: ${error.message}`);
+        t.diagnostic(`Error looking up user: ${error.message}`);
     }
     return null;
+}
+
+async function lookupUserId(configuration, t){
+    const user = await lookupUser(configuration, t);
+    return user ? user.id : null;
 }
 
 function runTests(userSchema, userSchemaExtensions = [], configuration) {
@@ -60,7 +68,7 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             sharedState.users = response.data.Resources;
 
             // for each resource, ensure it contains no other attributes then defined in the schema
-            sharedState.users.forEach(user => {
+            response.data.Resources.forEach(user => {
                 verifyUser(user, userSchema, userSchemaExtensions);
             });
         });
@@ -123,6 +131,25 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             const users = response.data.Resources;
             users.forEach(user => {
                 assert.ok(user.hasOwnProperty('userName'), 'User should have userName attribute');
+            });
+        });
+
+        test('Filters users by userName', async (t) => {
+            const testAxios = getAxiosInstance(getConfig(), t);
+
+            const user = await lookupUser(getConfig(), t);
+            if (!user) {
+                t.skip('Could not find a valid user for the filter test');
+                return;
+            }
+
+            const filter = `userName eq "${user.userName}"`;
+            const response = await testAxios.get(`/Users?filter=${filter}`);
+            assert.strictEqual(response.status, 200, 'Filtered users request should return 200 OK');
+            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
+            const users = response.data.Resources;
+            users.forEach(user => {
+                assert.strictEqual(user.userName, user.userName, 'User should have userName equal to "bjensen"');
             });
         });
 

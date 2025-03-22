@@ -18,13 +18,13 @@ try {
 
 let defaultConfig = {
     baseURL: process.env.BASE_URL,
-    token: process.env.TOKEN,
+    authHeader: process.env.AUTH_HEADER,
 
     ...configFromEnv
 };
 
-if (!defaultConfig.baseURL || !defaultConfig.token) {
-    throw new Error('BASE_URL and TOKEN must be set in the environment variables');
+if (!defaultConfig.baseURL || !defaultConfig.authHeader) {
+    throw new Error('BASE_URL and AUTH_HEADER must be set in the environment variables');
 }
 
 /**
@@ -37,8 +37,8 @@ export function getAxiosInstance(config = defaultConfig, testContext = null) {
     const instance = axios.create({
         baseURL: config.baseURL,
         headers: {
-            'Authorization': `Bearer ${config.token}`,
-            'User-Agent': 'veriyf.scim.dev'
+            'Authorization': `${config.authHeader}`,
+            'User-Agent': 'verify.scim.dev'
         },
         validateStatus: function (status) {
             // Return true for any status code (don't throw errors)

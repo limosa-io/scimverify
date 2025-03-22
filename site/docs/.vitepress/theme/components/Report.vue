@@ -3,38 +3,60 @@
     <div class="test-form">
       <form @submit.prevent="validateAndRunTests">
 
-       
-        
         <div class="form-group">
 
-          <p>
-            SCIM Verify is a testing tool for validating SCIM 2.0 implementations.<br />
-            Simply provide your SCIM base URL and authentication token.<br />
-            Optionally, select which features to test.
-        </p>
+          <p style="margin-bottom: 20px;">
+            <span class="font-scim">SCIM</span> <span style="font-weight: 600">Verify</span> is a conformance testing tool to verify your <span class="font-scim">SCIM</span> <span style="font-weight: 600">2.0</span> implementation complies with the specifications.
+          </p>
 
           <label for="url">SCIM Base URL:</label>
           <input type="url" id="url" v-model="url" required placeholder="Enter the SCIM Base URL">
-
-          <label for="token" style="margin-top: 15px;">Authorization Token:</label>
-          <input type="text" id="token" v-model="token" required placeholder="Enter the Authorization Token">
+          <div class="input-hint">Example: https://api.scim.dev/scim/v2</div>
 
 
-        <!-- Turnstile widget container -->
-        <div class="turnstile-container">
-          <div id="turnstile-widget" ref="turnstileWidget"></div>
-          <div v-if="turnstileError" class="turnstile-error">
-            Please complete the Cloudflare Turnstile challenge to verify you're human.
+          <label for="auth-scheme" style="margin-top: 15px;">Authentication Scheme:</label>
+          <select id="auth-scheme" v-model="authScheme" required>
+            <option value="basic">Basic</option>
+            <option value="bearer">Bearer</option>
+            <option value="custom">Custom</option>
+          </select>
+
+          <div v-if="authScheme === 'basic'" style="margin-top: 10px;">
+            <label for="basic-username">Username:</label>
+            <input type="text" id="basic-username" v-model="basicAuth.username" required placeholder="Enter username">
+
+            <label for="basic-password" style="margin-top: 10px;">Password:</label>
+            <input type="password" id="basic-password" v-model="basicAuth.password" required
+              placeholder="Enter password">
           </div>
-        </div>
 
-        <!-- Run Tests Button -->
-        <button type="submit">Run Tests</button>
+          <div v-if="authScheme === 'bearer'" style="margin-top: 10px;">
+            <label for="bearer-token">Bearer Token:</label>
+            <input type="text" id="bearer-token" v-model="bearerToken" required placeholder="Enter the Bearer token">
+          </div>
 
-        <!-- Advanced settings toggle button -->
-        <button type="button" class="advanced-toggle" @click="showAdvanced = !showAdvanced">
-          {{ showAdvanced ? 'Hide Advanced Settings' : 'Show Advanced Settings' }}
-        </button>
+          <div v-if="authScheme === 'custom'" style="margin-top: 10px;">
+            <label for="custom-auth">Custom Authorization Header:</label>
+            <input type="text" id="custom-auth" v-model="customAuth" required
+              placeholder="Enter the complete Authorization header value">
+            <div class="input-hint">Example: Basic dXNlcm5hbWU6cGFzc3dvcmQ=</div>
+          </div>
+
+          <!-- Turnstile widget container -->
+          <div class="turnstile-container">
+            <div id="turnstile-widget" ref="turnstileWidget"></div>
+            <div v-if="turnstileError" class="turnstile-error">
+              Please complete the Cloudflare Turnstile challenge to verify you're human.
+            </div>
+          </div>
+
+          <!-- Run Tests Button -->
+          <button type="submit">Run Tests</button>
+
+          <!-- Advanced settings toggle button -->
+          <button type="button" class="advanced-toggle" @click="showAdvanced = !showAdvanced">
+            {{ showAdvanced ? 'Hide Advanced Settings' : 'Show Advanced Settings' }}
+          </button>
 
         </div>
 
@@ -51,12 +73,12 @@
           </div>
         </div>
 
-        
+
       </form>
     </div>
 
     <!-- Test Output Section -->
-    <div class="test-output" v-if="testFiles?.length > 0">
+    <div class="test-output" ref="testOutputSection" v-if="testFiles?.length > 0">
       <h2>Test Results</h2>
       <div
         v-for="testFile in testFiles.filter(f => f.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type)).length > 0)"
@@ -101,22 +123,21 @@
               </div>
             </div>
 
-            <div
-              v-if="getActiveDiagnosticTab(msg.id) === 'response'" class="tab-content">
+            <div v-if="getActiveDiagnosticTab(msg.id) === 'response'" class="tab-content">
               <div v-for="response in r?.messages.filter((m, index) => {
-              const msgIndex = r.messages.findIndex(item => item.id === msg.id);
-              return ['test:diagnostic'].includes(m.type) && 
-                m.data.message.type == 'response' && 
-                m.data.message.requestId === msg.data.message.id && 
-                index > msgIndex;
+                const msgIndex = r.messages.findIndex(item => item.id === msg.id);
+                return ['test:diagnostic'].includes(m.type) &&
+                  m.data.message.type == 'response' &&
+                  m.data.message.requestId === msg.data.message.id &&
+                  index > msgIndex;
               }).slice(0, 1)">
-              <div>HTTP {{ response.data.message.status }} {{ response.data.message.statusText }}</div>
-              <div v-if="response.data.message.headers">
-                <span v-for="(value, key) in response.data.message.headers" :key="key">
-                <strong>{{ key }}:</strong> {{ value }}<br />
-                </span>
-              </div>
-              <pre v-if="response.data.message.body">{{ formatJSON(response.data.message.body) }}</pre>
+                <div>HTTP {{ response.data.message.status }} {{ response.data.message.statusText }}</div>
+                <div v-if="response.data.message.headers">
+                  <span v-for="(value, key) in response.data.message.headers" :key="key">
+                    <strong>{{ key }}:</strong> {{ value }}<br />
+                  </span>
+                </div>
+                <pre v-if="response.data.message.body">{{ formatJSON(response.data.message.body) }}</pre>
               </div>
             </div>
           </div>
@@ -128,11 +149,14 @@
 
 <script>
 import { io } from 'socket.io-client';
-import { EditorView, basicSetup } from 'codemirror';
+import { EditorView, basicSetup, minimalSetup } from 'codemirror';
 import { EditorState } from '@codemirror/state';
 import { yaml } from '@codemirror/lang-yaml';
 import { oneDark } from '@codemirror/theme-one-dark';
 import jsYaml from 'js-yaml';
+import { lineNumbers } from '@codemirror/view';
+import { foldGutter, foldKeymap } from '@codemirror/language';
+import { keymap } from '@codemirror/view';
 import defaultConfig from './config.yaml?raw';
 
 class TestResult {
@@ -190,7 +214,13 @@ export default {
 
     return {
       url: '',
-      token: '',
+      authScheme: 'bearer', // Default to bearer
+      bearerToken: '',
+      basicAuth: {
+        username: '',
+        password: ''
+      },
+      customAuth: '',
       config: '',
       output: '',
       socket: null,
@@ -214,15 +244,10 @@ export default {
     };
   },
   created() {
-    // If model is empty (config failed to load), set reasonable defaults
-        // Initialize the config display
     this.modelToYaml();
   },
   mounted() {
-    // Initialize Turnstile when the component is mounted
     this.loadTurnstileScript();
-    
-    // Initialize CodeMirror editor
     this.initEditor();
   },
   watch: {
@@ -237,7 +262,7 @@ export default {
       if (newVal && this.editor) {
         // Need to refresh the editor when it becomes visible
         setTimeout(() => {
-          this.editor.dispatch({type: "refresh"});
+          this.editor.dispatch({ type: "refresh" });
         }, 10);
       }
     }
@@ -266,9 +291,12 @@ export default {
       const startState = EditorState.create({
         doc: this.yamlConfig,
         extensions: [
-          basicSetup,
+          minimalSetup,
+          lineNumbers(),
           yaml(),
           oneDark,
+          foldGutter(),
+          keymap.of(foldKeymap),
           EditorView.updateListener.of(update => {
             if (update.docChanged) {
               this.yamlConfig = update.state.doc.toString();
@@ -287,12 +315,12 @@ export default {
     // Convert model to YAML
     modelToYaml() {
       try {
-        this.yamlConfig = jsYaml.dump(this.model, { 
+        this.yamlConfig = jsYaml.dump(this.model, {
           indent: 2,
           lineWidth: -1,
           noRefs: true
         });
-        
+
         // Update editor content if it exists and content is different
         if (this.editor && this.editor.state.doc.toString() !== this.yamlConfig) {
           this.editor.dispatch({
@@ -365,15 +393,15 @@ export default {
     // Render the Turnstile widget
     renderTurnstileWidget() {
       if (!window.turnstile) return;
-      
+
       // Use the environment variable for the site key or fallback to a default
       const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
-      
+
       // Reset any existing widget
       if (this.turnstileWidgetId) {
         turnstile.reset(this.turnstileWidgetId);
       }
-      
+
       // Render the widget
       this.turnstileWidgetId = turnstile.render('#turnstile-widget', {
         sitekey: siteKey,
@@ -387,14 +415,14 @@ export default {
         }
       });
     },
-    
+
     // Validate Turnstile before running tests
     validateAndRunTests() {
       if (!this.turnstileToken) {
         this.turnstileError = true;
         return;
       }
-      
+
       this.runTests();
     },
 
@@ -436,7 +464,7 @@ export default {
                 json.data.column,
                 json.data.name ?? json.data.message?.test_name
               );
-              
+
               if (existing) {
                 existing.messages.push(json);
               } else {
@@ -504,11 +532,24 @@ export default {
 
       this.showAdvanced = false;
 
+      // Format authentication based on the selected scheme
+      let authHeader = '';
+
+      if (this.authScheme === 'basic') {
+        // Create Base64 encoded basic auth
+        const base64Auth = btoa(`${this.basicAuth.username}:${this.basicAuth.password}`);
+        authHeader = `Basic ${base64Auth}`;
+      } else if (this.authScheme === 'bearer') {
+        authHeader = `Bearer ${this.bearerToken}`;
+      } else if (this.authScheme === 'custom') {
+        authHeader = this.customAuth;
+      }
+
       const configObject = {
         url: this.url,
-        token: this.token,
+        authHeader: authHeader, // Send the formatted auth header
         ...this.model,
-        turnstileToken: this.turnstileToken // Include Turnstile token
+        turnstileToken: this.turnstileToken
       };
 
       this.setupSocket(); // Connect to socket when running tests
@@ -517,11 +558,11 @@ export default {
       this.testFiles = [];
       this.diagnosticTabs.clear(); // Clear previous tab states
       this.socket.emit('start-tests', configObject);
-      
+
       // Reset Turnstile after submitting
       this.resetTurnstile();
     },
-    
+
     // Reset Turnstile widget
     resetTurnstile() {
       if (window.turnstile && this.turnstileWidgetId) {
@@ -529,7 +570,7 @@ export default {
         this.turnstileToken = null;
       }
     },
-    
+
     formatJSON(json) {
       return JSON.stringify(json, null, 2);
     },
@@ -597,6 +638,7 @@ label {
   font-size: 13px;
 }
 
+input[type="password"],
 input[type="url"],
 input[type="text"],
 textarea {
@@ -609,13 +651,13 @@ textarea {
   background-color: #ffffff;
   color: #3c4043;
   box-shadow: none;
-  
+
   &:focus {
     outline: none;
     border-color: #1a73e8;
     box-shadow: 0 1px 2px rgba(26, 115, 232, 0.1);
   }
-  
+
   &::placeholder {
     color: #80868b;
   }
@@ -646,12 +688,12 @@ textarea {
   color: #5f6368;
   flex: 1;
   text-align: center;
-  
+
   &:hover {
     background-color: rgba(26, 115, 232, 0.04);
     color: #1a73e8;
   }
-  
+
   &.active {
     background-color: transparent;
     border-bottom: 2px solid #1a73e8;
@@ -673,9 +715,11 @@ textarea {
 .option {
   margin-bottom: 18px;
   display: flex;
-  align-items: flex-start; /* Changed from center to flex-start */
-  flex-wrap: wrap; /* Added to allow wrapping for longer elements */
-  
+  align-items: flex-start;
+  /* Changed from center to flex-start */
+  flex-wrap: wrap;
+  /* Added to allow wrapping for longer elements */
+
   label {
     display: inline-block;
     font-weight: 400;
@@ -684,7 +728,8 @@ textarea {
     user-select: none;
     width: 300px;
     font-size: 14px;
-    margin-bottom: 8px; /* Added margin bottom */
+    margin-bottom: 8px;
+    /* Added margin bottom */
   }
 
   textarea {
@@ -698,7 +743,7 @@ textarea {
     border: 1px solid #dadce0;
     border-radius: 4px;
     resize: vertical;
-    
+
     &:focus {
       outline: none;
       border-color: #1a73e8;
@@ -713,14 +758,14 @@ textarea {
     font-size: 12px;
     font-style: italic;
   }
-  
+
 }
 
 .option {
   margin-bottom: 18px;
   display: flex;
   align-items: center;
-  
+
   label {
     display: inline-block;
     font-weight: 400;
@@ -731,7 +776,7 @@ textarea {
     font-size: 14px;
     margin-bottom: 0;
   }
-  
+
   input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
@@ -745,11 +790,11 @@ textarea {
     transition: all 0.15s;
     background-color: white;
     position: relative;
-    
+
     &:checked {
       background-color: #1a73e8;
       border-color: #1a73e8;
-      
+
       &::after {
         content: '';
         position: absolute;
@@ -762,11 +807,11 @@ textarea {
         transform: rotate(45deg);
       }
     }
-    
+
     &:hover {
       border-color: #1a73e8;
     }
-    
+
     &:focus {
       outline: none;
       box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.25);
@@ -787,12 +832,12 @@ button {
   font-size: 14px;
   letter-spacing: 0.25px;
   margin-top: 8px;
-  
+
   &:hover {
     background-color: #1765cc;
     box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
   }
-  
+
   &:active {
     background-color: #185abc;
     box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
@@ -813,12 +858,12 @@ button {
   letter-spacing: 0.25px;
   margin-top: 16px;
   margin-left: 12px;
-  
+
   &:hover {
     background-color: rgba(26, 115, 232, 0.04);
     box-shadow: 0 1px 2px rgba(60, 64, 67, 0.1);
   }
-  
+
   &:active {
     background-color: rgba(26, 115, 232, 0.08);
     box-shadow: 0 1px 2px rgba(60, 64, 67, 0.1);
@@ -832,7 +877,7 @@ button {
   border-color: #dadce0;
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
-  
+
   h2 {
     margin: 0 0 20px 0;
     font-size: 16px;
@@ -856,11 +901,11 @@ button {
   overflow: hidden;
   transition: all 0.2s ease-in-out;
   border: 1px solid #f4f4f5;
-  
+
   &:hover {
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
   }
-  
+
   p {
     padding: 14px 18px;
     margin: 0;
@@ -883,57 +928,58 @@ summary {
   font-weight: 500;
   position: relative;
   background-color: #fafafa;
-  
-  h2, h3 {
+
+  h2,
+  h3 {
     display: inline;
     margin: 0;
     padding: 0;
     font-weight: 600;
     font-size: 1rem;
   }
-  
+
   &:hover {
     background-color: #f5f5f5;
   }
-  
+
   &:focus {
     outline: none;
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
   }
-  
+
   &.test\:pass {
     background-color: rgba(34, 197, 94, 0.05);
-    
+
     &:hover {
       background-color: rgba(34, 197, 94, 0.08);
     }
-    
+
     &::marker {
       color: #22c55e;
       content: '✓ ';
     }
   }
-  
+
   &.test\:fail {
     background-color: rgba(239, 68, 68, 0.05);
-    
+
     &:hover {
       background-color: rgba(239, 68, 68, 0.08);
     }
-    
+
     &::marker {
       color: #ef4444;
       content: '✗ ';
     }
   }
-  
+
   &.test\:skip {
     background-color: rgba(245, 158, 11, 0.05);
-    
+
     &:hover {
       background-color: rgba(245, 158, 11, 0.08);
     }
-    
+
     &::marker {
       color: #f59e0b;
       content: '~ ';
@@ -942,7 +988,8 @@ summary {
 }
 
 /* Code styling */
-pre, .http-request {
+pre,
+.http-request {
   font-family: 'SF Mono', SFMono-Regular, ui-monospace, Consolas, Menlo, monospace;
   font-size: 13px;
 }
@@ -962,7 +1009,7 @@ pre {
 .request-line {
   margin-bottom: 12px;
   color: #334155;
-  
+
   strong {
     color: #2563eb;
   }
@@ -971,7 +1018,7 @@ pre {
 .request-headers {
   margin-bottom: 12px;
   color: #64748b;
-  
+
   strong {
     color: #475569;
   }
@@ -983,7 +1030,7 @@ pre {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
-  
+
   .tabs {
     display: flex;
     border-bottom: 1px solid #e2e8f0;
@@ -991,13 +1038,13 @@ pre {
     border-radius: 6px 6px 0 0;
     padding: 4px 4px 0 4px;
   }
-  
+
   .tab {
     padding: 8px 14px;
     font-size: 13px;
     border-radius: 4px 4px 0 0;
   }
-  
+
   .tab-content {
     padding: 16px;
     font-size: 13px;
@@ -1008,7 +1055,7 @@ pre {
 }
 
 /* Animation */
-details[open] > summary ~ * {
+details[open]>summary~* {
   animation: slide-down 0.25s ease-in-out;
 }
 
@@ -1017,6 +1064,7 @@ details[open] > summary ~ * {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -1028,24 +1076,24 @@ details[open] > summary ~ * {
   .test-form {
     padding: 0;
   }
-  
+
   .form-group:nth-child(-n+2) {
     padding: 16px;
   }
-  
+
   .tab {
     padding: 12px 8px;
     font-size: 13px;
   }
-  
+
   .tab-content {
     padding: 16px;
   }
-  
+
   .option label {
     width: auto;
   }
-  
+
   button {
     width: 100%;
   }
@@ -1085,7 +1133,8 @@ details[open] > summary ~ * {
 }
 
 .advanced-settings.show {
-  max-height: 2000px; /* Large enough to contain all content */
+  max-height: 2000px;
+  /* Large enough to contain all content */
   opacity: 1;
 }
 
@@ -1135,7 +1184,33 @@ details[open] > summary ~ * {
 }
 
 .advanced-settings.show {
-  max-height: 500px; /* Adjust to fit the YAML editor */
+  max-height: 500px;
+  /* Adjust to fit the YAML editor */
   opacity: 1;
+}
+
+select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  background-color: #ffffff;
+  color: #3c4043;
+  box-shadow: none;
+
+  &:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 1px 2px rgba(26, 115, 232, 0.1);
+  }
+}
+
+.input-hint {
+  font-size: 12px;
+  color: #5f6368;
+  margin-top: 4px;
+  margin-bottom: 10px;
 }
 </style>

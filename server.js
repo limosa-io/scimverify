@@ -51,8 +51,8 @@ io.on('connection', (socket) => {
     }, 60000);
     
     socket.on('start-tests', async (configuration) => {
-        if (!configuration.url || !configuration.token) {
-            socket.emit('error', 'URL and token are required');
+        if (!configuration.url || !configuration.authHeader) {
+            socket.emit('error', 'URL and authHeader are required');
             return;
         }
 
@@ -75,7 +75,7 @@ io.on('connection', (socket) => {
         ], {
             env: {
                 BASE_URL: configuration.url,
-                TOKEN: configuration.token,
+                AUTH_HEADER: configuration.authHeader,
                 CONFIG: JSON.stringify(configuration)
             }
         });

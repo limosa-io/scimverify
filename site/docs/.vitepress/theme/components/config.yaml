@@ -12,6 +12,32 @@ users:
   sortAttributes:
     - userName
 
+  filter_tests:
+    - filter: userName eq "bjensen"
+      user_schema: {
+        "type": "object",
+        "properties": {
+          "schemas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "contains": {
+              "const": "urn:ietf:params:scim:schemas:core:2.0:User"
+            }
+          },
+          "userName": {
+            "type": "string",
+            "const": "bjensen"
+          }
+        },
+        "required": [
+          "userName",
+          "schemas"
+        ],
+        "additionalProperties": true
+      }
+
   post_tests:
     - request:
         {
