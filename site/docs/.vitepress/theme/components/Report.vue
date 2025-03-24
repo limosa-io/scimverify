@@ -6,7 +6,9 @@
         <div class="form-group">
 
           <p style="margin-bottom: 20px;">
-            <span class="font-scim">SCIM</span> <span style="font-weight: 600">Verify</span> is a conformance testing tool to verify your <span class="font-scim">SCIM</span> <span style="font-weight: 600">2.0</span> implementation complies with the specifications.
+            <span class="font-scim">SCIM</span> <span style="font-weight: 600">Verify</span> is a conformance testing
+            tool to verify your <span class="font-scim">SCIM</span> <span style="font-weight: 600">2.0</span>
+            implementation complies with the specifications.
           </p>
 
           <label for="url">SCIM Base URL:</label>
@@ -85,18 +87,26 @@
         class="file-item">
         <details v-for="r in testFile.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type))"
           class="result-item">
-          <summary class="result-value" :class="[r.getLatest().type, r.skipped() ? 'test:skip' : '']">
+          <summary class="result-value" :class="[
+            r.getLatest().type,
+            r.skipped() ? 'test:skip' : '',
+            !(r.getLatest().type === 'test:fail' ||
+              r.skipped() ||
+              r.messages.some(m => m.type === 'test:diagnostic' && m.data.message?.type === 'request')) ? 'no-details' : ''
+          ]">
             <component :is="r.getLatest().data.nesting == 0 ? 'h2' : 'h3'">
-              {{ r.getLatest().data.name }}
+              {{ r.getLatest().data.name }} <span>show more ↴</span>
             </component>
           </summary>
+
           <p v-if="r.getLatest().type == 'test:fail' && !r.skipped()">
             <strong>Error:</strong> {{ r.getLatest().data?.details?.assertionMessage?.replace('\n\n', ': ') }}
           </p>
+
           <p v-if="r.skipped()">This test was skipped because it depends on a prerequisite test that failed.</p>
 
           <!-- Diagnostic Messages -->
-          <div
+          <div v-else-if="r.messages.filter(m => ['test:diagnostic'].includes(m.type)).length > 0"
             v-for="msg in r?.messages.filter(m => ['test:diagnostic'].includes(m.type) && m.data.message.type == 'request')"
             class="diagnostic-tabs">
             <div class="tabs">
@@ -929,6 +939,28 @@ summary {
   position: relative;
   background-color: #fafafa;
 
+  span {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background-color: #f3f4f6;
+    border-radius: 4px;
+    font-weight: normal;
+    vertical-align: middle;
+  }
+
+  &.no-details {
+    cursor: default;
+
+
+
+    span {
+      display: none;
+    }
+  }
+
   h2,
   h3 {
     display: inline;
@@ -942,9 +974,17 @@ summary {
     background-color: #f5f5f5;
   }
 
+  &.no-details:hover {
+    background-color: #fafafa;
+  }
+
   &:focus {
     outline: none;
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+  }
+
+  &.no-details:focus {
+    box-shadow: none;
   }
 
   &.test\:pass {
