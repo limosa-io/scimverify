@@ -5,8 +5,8 @@
     "packageVersions": {},
     "actionVersions": {
       "scim/verify": {
-        "digest": "f72cd974acbd1c352ee37865f7f6b5ac502fb18dc193cb60c5ab7ac944574067",
-        "version": "0.0.3"
+        "digest": "302cb01bd761564fee108a3242c6e7037c2c45eb91191f9e99b804200e4141ed",
+        "version": "0.0.4"
       }
     }
   }

@@ -91,32 +91,9 @@ if (process.env.SERVER_MODE !== 'function') {
 
 // Export for serverless function use - Digital Ocean Functions will use this
 export const main = function(req, res) {
-    // Create a proper middleware-compatible environment for Express
-    // This avoids relying on stream.listeners which is problematic in some environments
-    return new Promise((resolve, reject) => {
-        // Wrap the response to capture when processing is complete
-        const originalEnd = res.end;
-        res.end = function() {
-            originalEnd.apply(res, arguments);
-            resolve();
-        };
-        
-        // Handle errors to prevent uncaught rejections
-        app.once('error', reject);
-        
-        // Process the request through Express
-        app(req, res, (err) => {
-            if (err) {
-                reject(err);
-            }
-            // If Express doesn't handle the route, resolve with a 404
-            if (!res.headersSent) {
-                res.statusCode = 404;
-                res.end();
-            }
-            resolve();
-        });
-    });
+    // In serverless environments, we need to ensure we're not relying on stream.listeners
+    // Use the Express app directly instead of trying to handle as an async function
+    return app(req, res);
 };
 
 // For backwards compatibility
