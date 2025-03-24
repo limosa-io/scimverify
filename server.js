@@ -57,18 +57,20 @@ io.on('connection', (socket) => {
         }
 
         // Verify Turnstile token if provided
-        // if (configuration.turnstileToken) {
-        //     const ipAddress = socket.handshake.address;
-        //     const isValid = await verifyTurnstileToken(configuration.turnstileToken, ipAddress);
-            
-        //     if (!isValid) {
-        //         socket.emit('error', 'Invalid Turnstile token verification');
-        //         return;
-        //     }
-        // } else {
-        //     socket.emit('error', 'Turnstile token is required');
-        //     return;
-        // }
+        if(process.env.TURNSTILE_ENABLED !== 'true') {
+            if (configuration.turnstileToken) {
+                const ipAddress = socket.handshake.address;
+                const isValid = await verifyTurnstileToken(configuration.turnstileToken, ipAddress);
+                
+                if (!isValid) {
+                    socket.emit('error', 'Invalid Turnstile token verification');
+                    return;
+                }
+            } else {
+                socket.emit('error', 'Turnstile token is required');
+                return;
+            }
+        }
 
         const testProcess = spawn('node', [
             path.resolve(__dirname, 'index-json.js')
@@ -79,7 +81,6 @@ io.on('connection', (socket) => {
                 CONFIG: JSON.stringify(configuration)
             }
         });
-        
 
         testProcess.stdout.on('data', (data) => {
             socket.emit('test-output', data.toString());
