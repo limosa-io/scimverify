@@ -9,7 +9,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./packages/scim/verify:/usr/src/app
+      - ./:/usr/src/app
     command: ["npx", "nodemon", "server.js"]
     environment:
       - NODE_ENV=development
