@@ -1,5 +1,5 @@
 packages:
-  - name: scimverify
+  - name: scim
     functions:
       - name: verify
         runtime: nodejs:18
@@ -8,4 +8,4 @@ packages:
           TURNSTILE_ENABLED: 'true'
           TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
           SERVER_MODE: function
-        main: server.js
+        main: server.main

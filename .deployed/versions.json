@@ -2,12 +2,12 @@
   {
     "apihost": "https://faas-ams3-2a2df116.doserverless.co",
     "namespace": "fn-5369a627-86bd-4113-98cb-5cd714fd1256",
-    "packageVersions": {
-      "scimverify": {
-        "version": "0.0.1",
-        "digest": "1ff2898ef48873e89a0f3713c8bcb26235d802bffdf4dbb1b02488484b1b4f6e"
+    "packageVersions": {},
+    "actionVersions": {
+      "scim/verify": {
+        "digest": "f72cd974acbd1c352ee37865f7f6b5ac502fb18dc193cb60c5ab7ac944574067",
+        "version": "0.0.3"
       }
-    },
-    "actionVersions": {}
+    }
   }
 ]

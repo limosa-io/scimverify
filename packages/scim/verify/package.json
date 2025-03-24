@@ -26,7 +26,7 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
-    "doctl": "^1.92.0"
+    
   },
   "type": "module",
   "directories": {
