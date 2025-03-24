@@ -1,0 +1,11 @@
+packages:
+  - name: scimverify
+    functions:
+      - name: verify
+        runtime: nodejs:18
+        web: true
+        environment:
+          TURNSTILE_ENABLED: 'true'
+          TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
+          SERVER_MODE: function
+        main: server.js

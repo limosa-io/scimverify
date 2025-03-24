@@ -53,7 +53,10 @@
           </div>
 
           <!-- Run Tests Button -->
-          <button type="submit">Run Tests</button>
+          <button type="submit" :disabled="isRunningTests" class="run-button" :class="{ 'running': isRunningTests }">
+            <span v-if="!isRunningTests">Run Tests</span>
+            <span v-else>Running Tests <span class="dots-loading"></span></span>
+          </button>
 
           <!-- Advanced settings toggle button -->
           <button type="button" class="advanced-toggle" @click="showAdvanced = !showAdvanced">
@@ -80,8 +83,17 @@
     </div>
 
     <!-- Test Output Section -->
-    <div class="test-output" ref="testOutputSection" v-if="testFiles?.length > 0">
-      <h2>Test Results</h2>
+    <div class="test-output" ref="testOutputSection" v-if="testFiles?.length > 0 || isRunningTests">
+      <h2>
+        Test Results
+        <div v-if="isRunningTests" class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Running tests...</span>
+        </div>
+      </h2>
+      <div v-if="isRunningTests && testFiles.length === 0" class="running-tests-message">
+        Please wait while tests are being executed...
+      </div>
       <div
         v-for="testFile in testFiles.filter(f => f.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest().type)).length > 0)"
         class="file-item">
@@ -158,7 +170,7 @@
 </template>
 
 <script>
-import { io } from 'socket.io-client';
+// Remove socket.io import and replace with native fetch
 import { EditorView, basicSetup, minimalSetup } from 'codemirror';
 import { EditorState } from '@codemirror/state';
 import { yaml } from '@codemirror/lang-yaml';
@@ -233,7 +245,7 @@ export default {
       customAuth: '',
       config: '',
       output: '',
-      socket: null,
+      abortController: null, // For aborting fetch requests
       result: new Map(),
       testFiles: [],
       showAdvanced: false, // Hide advanced settings by default
@@ -251,6 +263,8 @@ export default {
       turnstileToken: import.meta.env.VITE_TURNSTILE_SITE_KEY,
       turnstileError: false,
       turnstileWidgetId: null,
+
+      isRunningTests: false, // Track if tests are currently running
     };
   },
   created() {
@@ -278,9 +292,8 @@ export default {
     }
   },
   beforeUnmount() {
-    if (this.socket) {
-      this.socket.disconnect();
-    }
+    this.cancelTests();
+
     // Clean up Turnstile if it was initialized
     if (this.turnstileWidgetId) {
       turnstile.reset(this.turnstileWidgetId);
@@ -436,31 +449,132 @@ export default {
       this.runTests();
     },
 
-    setupSocket() {
-      if (this.socket && this.socket.connected) {
-        return; // Socket already connected
+    // Replace setupSocket with startTestStream
+    startTestStream() {
+      // Cancel any existing request
+      if (this.abortController) {
+        this.abortController.abort();
       }
 
-      if (this.socket) {
-        this.socket.disconnect(); // Disconnect any existing socket
+      this.abortController = new AbortController();
+      this.isRunningTests = true;
+
+      // Format authentication based on the selected scheme
+      let authHeader = '';
+
+      if (this.authScheme === 'basic') {
+        // Create Base64 encoded basic auth
+        const base64Auth = btoa(`${this.basicAuth.username}:${this.basicAuth.password}`);
+        authHeader = `Basic ${base64Auth}`;
+      } else if (this.authScheme === 'bearer') {
+        authHeader = `Bearer ${this.bearerToken}`;
+      } else if (this.authScheme === 'custom') {
+        authHeader = this.customAuth;
       }
 
-      this.socket = io(import.meta.env.VITE_SCIM_TEST_SERVER_URL); // Adjust the URL if needed
+      const configObject = {
+        url: this.url,
+        authHeader: authHeader,
+        ...this.model,
+        turnstileToken: this.turnstileToken
+      };
 
-      this.socket.on('connect', () => {
-        // connected
-      });
+      // Clear previous results
+      this.result.clear();
+      this.testFiles = [];
+      this.diagnosticTabs.clear();
+      this.output = 'Starting tests...\n';
 
-      this.socket.on('test-output', (data) => {
+      const serverUrl = import.meta.env.VITE_SCIM_TEST_SERVER_URL;
+      console.log('Sending test request to:', serverUrl);
 
+      fetch(`${serverUrl}/run-tests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configObject),
+        signal: this.abortController.signal
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+          }
+
+          console.log('Got stream response, status:', response.status);
+          this.output += `Connected to test server. Starting test run...\n`;
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          const processStream = ({ done, value }) => {
+            if (done) {
+              console.log('Stream complete');
+              // Process any remaining data in buffer
+              if (buffer.trim()) {
+                this.processTestOutput(buffer);
+              }
+              this.isRunningTests = false;
+              this.output += 'Test run completed.\n';
+              return;
+            }
+
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            // Process complete lines
+            const lines = buffer.split('\n');
+
+            // Keep the last partial line in the buffer
+            buffer = lines.pop() || '';
+
+            // Process complete lines
+            if (lines.length > 0) {
+              this.processTestOutput(lines.join('\n'));
+            }
+
+            // Continue reading
+            reader.read().then(processStream);
+          };
+
+          // Start reading the stream
+          reader.read().then(processStream);
+        })
+        .catch(error => {
+          if (error.name === 'AbortError') {
+            console.log('Fetch aborted');
+            this.output += 'Test run aborted.\n';
+          } else {
+            console.error('Error in test stream:', error);
+            this.output += `Error: ${error.message}\n`;
+          }
+          this.isRunningTests = false;
+        });
+    },
+
+    // Process incoming test output chunks
+    processTestOutput(data) {
+      try {
         data.split('\n').filter(e => e.length > 0).forEach(line => {
           try {
             const json = JSON.parse(line);
 
-            json.id = Math.random().toString(36).substring(2, 15)
+            // Handle error or complete messages
+            if (json.type === 'error') {
+              this.output += `Error: ${json.data.message}\n`;
+              return;
+            }
 
-            // append to results, or update existing entry if it has the same file, line and column
-            if (json.data.nesting >= 0) {
+            if (json.type === 'complete') {
+              this.output += `Tests completed with code: ${json.data.code}\n`;
+              return;
+            }
+
+            json.id = Math.random().toString(36).substring(2, 15);
+
+            // Only process test data if it has the expected structure
+            if (json.data && json.data.nesting >= 0) {
               // Find or create TestFile
               let testFile = this.testFiles.find(tf => tf.file === json.data.file);
               if (!testFile) {
@@ -489,91 +603,61 @@ export default {
               }
             }
 
-            if (json.data.file === json.data.name) {
+            if (json.data && json.data.file === json.data.name) {
               return;
             }
 
             // Create nested map structure by filename and line-column
-            if (!this.result.has(json.data.file)) {
-              this.result.set(json.data.file, new Map());
+            if (json.data && json.data.file) {
+              if (!this.result.has(json.data.file)) {
+                this.result.set(json.data.file, new Map());
+              }
+              const fileMap = this.result.get(json.data.file);
+
+              fileMap.set(`${json.data.line}-${json.data.column}`, json);
+
+              // Sort the fileMap entries by line number
+              const sortedEntries = Array.from(fileMap.entries()).sort((a, b) => {
+                const lineA = parseInt(a[0].split('-')[0]);
+                const lineB = parseInt(b[0].split('-')[0]);
+                return lineA - lineB;
+              });
+
+              // Clear the existing map and add the sorted entries back
+              fileMap.clear();
+              for (const [key, value] of sortedEntries) {
+                fileMap.set(key, value);
+              }
             }
-            const fileMap = this.result.get(json.data.file);
-
-            fileMap.set(`${json.data.line}-${json.data.column}`, json);
-
-            // Sort the fileMap entries by line number
-            const sortedEntries = Array.from(fileMap.entries()).sort((a, b) => {
-              const lineA = parseInt(a[0].split('-')[0]);
-              const lineB = parseInt(b[0].split('-')[0]);
-              return lineA - lineB;
-            });
-
-            // Clear the existing map and add the sorted entries back
-            fileMap.clear();
-            for (const [key, value] of sortedEntries) {
-              fileMap.set(key, value);
-            }
-
           } catch (err) {
             console.error('Failed to parse JSON:', err, line);
+            this.output += `Failed to parse output: ${line}\n`;
           }
         });
-
-
-      });
-      this.socket.on('test-error', (data) => {
-        this.output += `\nError: ${data}`;
-      });
-
-      this.socket.on('test-complete', (data) => {
-        this.output += `\nTests completed with code: ${data.code}`;
-      });
-
-      this.socket.on('error', (error) => {
-        this.output += `\nError: ${error}`;
-      });
-
-      this.socket.on('disconnect', () => {
-        console.log('Disconnected from WebSocket');
-      });
+      } catch (err) {
+        console.error('Error processing test output:', err);
+        this.output += `Error processing output: ${err.message}\n`;
+      }
     },
+
     runTests() {
       this.output = ''; // Clear previous output
-
       this.showAdvanced = false;
 
-      // Format authentication based on the selected scheme
-      let authHeader = '';
-
-      if (this.authScheme === 'basic') {
-        // Create Base64 encoded basic auth
-        const base64Auth = btoa(`${this.basicAuth.username}:${this.basicAuth.password}`);
-        authHeader = `Basic ${base64Auth}`;
-      } else if (this.authScheme === 'bearer') {
-        authHeader = `Bearer ${this.bearerToken}`;
-      } else if (this.authScheme === 'custom') {
-        authHeader = this.customAuth;
-      }
-
-      const configObject = {
-        url: this.url,
-        authHeader: authHeader, // Send the formatted auth header
-        ...this.model,
-        turnstileToken: this.turnstileToken
-      };
-
-      this.setupSocket(); // Connect to socket when running tests
-
-      this.result.clear();
-      this.testFiles = [];
-      this.diagnosticTabs.clear(); // Clear previous tab states
-      this.socket.emit('start-tests', configObject);
+      this.startTestStream(); // Start HTTP streaming request instead of socket
 
       // Reset Turnstile after submitting
       this.resetTurnstile();
     },
 
-    // Reset Turnstile widget
+    // Add method to cancel running tests if needed
+    cancelTests() {
+      if (this.abortController) {
+        this.abortController.abort();
+        this.isRunningTests = false;
+      }
+    },
+
     resetTurnstile() {
       if (window.turnstile && this.turnstileWidgetId) {
         turnstile.reset(this.turnstileWidgetId);
@@ -599,6 +683,11 @@ export default {
 </script>
 
 <style scoped>
+body {
+  overflow-y: scroll;
+
+}
+
 .report-container {
   max-width: 1000px;
   margin: 0 auto;
@@ -1252,5 +1341,95 @@ select {
   color: #5f6368;
   margin-top: 4px;
   margin-bottom: 10px;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  font-size: 14px;
+  color: #5f6368;
+  animation: fade-in 0.3s ease-in-out;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dadce0;
+  border-top: 2px solid #1a73e8;
+  border-radius: 50%;
+  margin-right: 8px;
+  animation: spin 1s linear infinite;
+}
+
+.run-button.running {
+  background-color: #9aa0a6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.dots-loading {
+  display: inline-block;
+  width: 24px;
+}
+
+.dots-loading:after {
+  content: '...';
+  animation: dots 1.5s steps(4, end) infinite;
+  display: inline-block;
+  width: 24px;
+  text-align: left;
+}
+
+.running-tests-message {
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: #5f6368;
+  text-align: center;
+  border: 1px dashed #dadce0;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dots {
+
+  0%,
+  20% {
+    content: '.';
+  }
+
+  40% {
+    content: '..';
+  }
+
+  60% {
+    content: '...';
+  }
+
+  80%,
+  100% {
+    content: '';
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 </style>

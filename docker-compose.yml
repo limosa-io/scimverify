@@ -10,7 +10,7 @@ services:
       - "3000:3000"
     volumes:
       - .:/usr/src/app
-    command: ["node", "server.js"]
+    command: ["npx", "nodemon", "server.js"]
     environment:
       - NODE_ENV=development
       - PORT=3000
