@@ -88,9 +88,11 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
             assert.strictEqual(response.data.id, firstGroup.id, 'Returned group ID should match requested group ID');
             assert.ok(response.data.displayName, 'Group should contain displayName attribute');
+            // Strip content type parameters (charset, boundary) from content-type header
+            const contentType = response.headers['content-type']?.split(';')[0].trim();
             assert.ok(
-                response.headers['content-type'] === 'application/scim+json' ||
-                response.headers['content-type'] === 'application/json',
+                contentType === 'application/scim+json' ||
+                contentType === 'application/json',
                 'Content-Type should be either application/scim+json or application/json'
             );
         });

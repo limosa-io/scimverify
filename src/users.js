@@ -82,9 +82,11 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:User', 'Response should use the correct SCIM user schema');
             assert.strictEqual(response.data.id, firstUser.id, 'Retrieved user ID should match the requested user ID');
             verifyUser(response.data, userSchema, userSchemaExtensions);
+            // Strip content type parameters (charset, boundary) from content-type header
+            const contentType = response.headers['content-type']?.split(';')[0].trim();
             assert.ok(
-                response.headers['content-type'] === 'application/scim+json' ||
-                response.headers['content-type'] === 'application/json',
+                contentType === 'application/scim+json' ||
+                contentType === 'application/json',
                 'Content-Type should be either application/scim+json or application/json'
             );
         });
