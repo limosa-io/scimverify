@@ -104,27 +104,31 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should contain the correct error schema');
         });
 
-        test('Paginates groups using startIndex', async (t) => {
-            const testAxios = getAxiosInstance(configuration, t);
-            const startIndex = 20;
-            const count = 5;
-            const response = await testAxios.get(`/Groups?startIndex=${startIndex}&count=${count}`);
-            assert.strictEqual(response.status, 200, 'Pagination request should return 200 OK');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
-            assert.ok(response.data.Resources.length <= count, 'Number of resources should be less than or equal to count');
-            assert.strictEqual(response.data.startIndex, startIndex, 'startIndex should match the requested startIndex');
-        });
+        if (configuration?.verifyPagination !== false) {
+            test('Paginates groups using startIndex', async (t) => {
+                const testAxios = getAxiosInstance(configuration, t);
+                const startIndex = 20;
+                const count = 5;
+                const response = await testAxios.get(`/Groups?startIndex=${startIndex}&count=${count}`);
+                assert.strictEqual(response.status, 200, 'Pagination request should return 200 OK');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
+                assert.ok(response.data.Resources.length <= count, 'Number of resources should be less than or equal to count');
+                assert.strictEqual(response.data.startIndex, startIndex, 'startIndex should match the requested startIndex');
+            });
+        }
 
-        test('Sorts groups by displayName', async (t) => {
-            const testAxios = getAxiosInstance(configuration, t);
-            const response = await testAxios.get('/Groups?sortBy=displayName');
-            assert.strictEqual(response.status, 200, 'Sort request should return 200 OK');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
-            const groups = response.data.Resources;
-            for (let i = 1; i < groups.length; i++) {
-                assert.ok(groups[i - 1].displayName <= groups[i].displayName, 'Groups should be sorted by displayName');
-            }
-        });
+        if (configuration?.verifySorting !== false) {
+            test('Sorts groups by displayName', async (t) => {
+                const testAxios = getAxiosInstance(configuration, t);
+                const response = await testAxios.get('/Groups?sortBy=displayName');
+                assert.strictEqual(response.status, 200, 'Sort request should return 200 OK');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
+                const groups = response.data.Resources;
+                for (let i = 1; i < groups.length; i++) {
+                    assert.ok(groups[i - 1].displayName <= groups[i].displayName, 'Groups should be sorted by displayName');
+                }
+            });
+        }
 
         if (configuration?.groups?.operations?.includes('POST')) {
             for (const [index, creation] of (configuration.groups.post_tests || []).entries()) {

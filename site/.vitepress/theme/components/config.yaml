@@ -1,5 +1,7 @@
 detectSchema: true
 detectResourceTypes: true
+verifyPagination: true
+verifySorting: true
 
 users:
   enabled: true

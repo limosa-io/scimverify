@@ -99,27 +99,31 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
 
         });
 
-        test('Paginates users using startIndex', async (t) => {
-            const testAxios = getAxiosInstance(configuration, t);
-            const startIndex = 20;
-            const count = 5;
-            const response = await testAxios.get(`/Users?startIndex=${startIndex}&count=${count}`);
-            assert.strictEqual(response.status, 200, 'Pagination request should return 200 OK');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
-            assert.ok(response.data.Resources.length <= count, 'Number of resources should be less than or equal to count');
-            assert.strictEqual(response.data.startIndex, startIndex, 'startIndex should match the requested startIndex');
-        });
+        if (configuration?.verifyPagination !== false) {
+            test('Paginates users using startIndex', async (t) => {
+                const testAxios = getAxiosInstance(configuration, t);
+                const startIndex = 20;
+                const count = 5;
+                const response = await testAxios.get(`/Users?startIndex=${startIndex}&count=${count}`);
+                assert.strictEqual(response.status, 200, 'Pagination request should return 200 OK');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
+                assert.ok(response.data.Resources.length <= count, 'Number of resources should be less than or equal to count');
+                assert.strictEqual(response.data.startIndex, startIndex, 'startIndex should match the requested startIndex');
+            });
+        }
 
-        test('Sorts users by userName', async (t) => {
-            const testAxios = getAxiosInstance(configuration, t);
-            const response = await testAxios.get('/Users?sortBy=userName');
-            assert.strictEqual(response.status, 200, 'Sort request should return 200 OK');
-            assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
-            const users = response.data.Resources;
-            for (let i = 1; i < users.length; i++) {
-                assert.ok(users[i - 1].userName <= users[i].userName, 'Users should be sorted by userName');
-            }
-        });
+        if (configuration?.verifySorting !== false) {
+            test('Sorts users by userName', async (t) => {
+                const testAxios = getAxiosInstance(configuration, t);
+                const response = await testAxios.get('/Users?sortBy=userName');
+                assert.strictEqual(response.status, 200, 'Sort request should return 200 OK');
+                assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
+                const users = response.data.Resources;
+                for (let i = 1; i < users.length; i++) {
+                    assert.ok(users[i - 1].userName <= users[i].userName, 'Users should be sorted by userName');
+                }
+            });
+        }
 
         test('Retrieves only userName attributes', async (t) => {
             const testAxios = getAxiosInstance(configuration, t);
