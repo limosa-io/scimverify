@@ -53,7 +53,13 @@
   "directories": {
     "doc": "doc"
   },
-  "keywords": ["scim", "verification", "testing", "api", "system for cross-domain identity management"],
+  "keywords": [
+    "scim",
+    "verification",
+    "testing",
+    "api",
+    "system for cross-domain identity management"
+  ],
   "files": [
     "index.js",
     "scim.test.js",
