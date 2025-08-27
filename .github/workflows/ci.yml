@@ -36,7 +36,7 @@ jobs:
           timeout 60 bash -c 'until curl -f http://localhost:8000/scim/v2/Schemas; do sleep 2; done'
           
           # Run scimverify tests against the server
-          npx node ./bin/scimverify.js --config ./site/.vitepress/theme/components/config.yaml --base-url https://api.scim.dev/scim/v2 --auth-header "Bearer YOUR_TOKEN" 
+          npx node ./bin/scimverify.js --config ./site/.vitepress/theme/components/config.yaml --base-url http://localhost:8000/scim/v2/ --auth-header "Bearer YOUR_TOKEN" 
           
           # Cleanup
           docker stop laravel-scim-server
