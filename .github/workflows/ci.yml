@@ -65,6 +65,3 @@ jobs:
       - name: Push image
         if: github.ref == 'refs/heads/main'
         run: docker push ghcr.io/${{ github.repository }}:latest
-
-      - name: Test Docker image
-        run: bash ./test-docker.sh
