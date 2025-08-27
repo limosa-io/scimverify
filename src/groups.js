@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { getAxiosInstance, canonicalize } from './helpers.js';
+import { getAxiosInstance, canonicalize, getResourceAttributeValue } from './helpers.js';
 import dotenv from 'dotenv';
 import Ajv from 'ajv';
 
@@ -87,7 +87,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             assert.strictEqual(response.status, 200, 'GET /Groups/{id} should return status code 200');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
             assert.strictEqual(response.data.id, firstGroup.id, 'Returned group ID should match requested group ID');
-            assert.ok(response.data.displayName, 'Group should contain displayName attribute');
+            assert.ok(getResourceAttributeValue(response.data, 'displayName'), 'Group should contain displayName attribute');
             // Strip content type parameters (charset, boundary) from content-type header
             const contentType = response.headers['content-type']?.split(';')[0].trim();
             assert.ok(
@@ -124,9 +124,23 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
                 assert.strictEqual(response.status, 200, 'Sort request should return 200 OK');
                 assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
                 const groups = response.data.Resources;
-                for (let i = 1; i < groups.length; i++) {
-                    assert.ok(groups[i - 1].displayName <= groups[i].displayName, 'Groups should be sorted by displayName');
+
+                const displayNames = groups.map(g => getResourceAttributeValue(g, 'displayName'));
+                const unsortedPairs = [];
+                for (let i = 1; i < displayNames.length; i++) {
+                    if (displayNames[i - 1] > displayNames[i]) {
+                        unsortedPairs.push({ index: i - 1, a: displayNames[i - 1], b: displayNames[i] });
+                    }
                 }
+                if (unsortedPairs.length > 0) {
+                    t.diagnostic(
+                        'Unsorted displayName pairs: ' +
+                        unsortedPairs
+                            .map(p => `(${p.index}->${p.index + 1}: "${p.a}" > "${p.b}")`)
+                            .join(', ')
+                    );
+                }
+                assert.strictEqual(unsortedPairs.length, 0, 'Groups should be sorted by displayName');
             });
         }
 
@@ -160,7 +174,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
                 };
 
                 const response = await testAxios.post('/Groups', newGroup);
-                assert.strictEqual(response.status, 400, 'Creating an invalid group should return status code 400');
+                assert.strictEqual(response.status, '400', 'Creating an invalid group should return status code 400');
                 assert.strictEqual(response.data.scimType, "invalidSyntax", 'Error should have scimType set to invalidSyntax');
                 assert.strictEqual(response.data.status, '400', 'Error response status should match HTTP status code');
                 assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should contain the correct error schema');

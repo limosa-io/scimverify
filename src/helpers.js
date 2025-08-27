@@ -156,3 +156,27 @@ export function canonicalize(resource, schema){
 
     return canonicalizedResource;
 }
+
+/**
+ * Retrieve the value of a SCIM attribute that may be present either at the
+ * resource root or under the main schema object (first entry in `schemas`).
+ * Only supports top-level attributes (no nested path parsing).
+ *
+ * @param {object} resource - SCIM resource object
+ * @param {string} attribute - Attribute name to fetch (e.g., 'userName')
+ * @returns {*} The attribute value or undefined if not found
+ */
+export function getResourceAttributeValue(resource, attribute) {
+    if (!resource || !attribute) return undefined;
+
+    if (Object.prototype.hasOwnProperty.call(resource, attribute) && resource[attribute] !== undefined) {
+        return resource[attribute];
+    }
+
+    const mainSchema = Array.isArray(resource.schemas) ? resource.schemas[0] : undefined;
+    if (mainSchema && resource[mainSchema] && Object.prototype.hasOwnProperty.call(resource[mainSchema], attribute)) {
+        return resource[mainSchema][attribute];
+    }
+
+    return undefined;
+}
