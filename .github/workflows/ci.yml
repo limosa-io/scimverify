@@ -1,9 +1,9 @@
 name: CI
 
+
 on:
   push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
   build:
@@ -35,26 +35,35 @@ jobs:
       - name: Install Netlify CLI
         run: npm install -g netlify-cli
 
+
       - name: Deploy to Netlify
+        if: github.ref == 'refs/heads/main'
         run: netlify deploy --prod --dir=./site/.vitepress/dist
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 
+
       - name: Push to dokku
+        if: github.ref == 'refs/heads/main'
         uses: dokku/github-action@master
         with:
           git_remote_url: "ssh://dokku@51.15.42.142:22/verify"
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           git_push_flags: '--force'
 
+
       - name: Build image
         run: docker build -t scimverify-test .
 
+
       - name: Authenticate to GHCR
+        if: github.ref == 'refs/heads/main'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
+
       - name: Push image
+        if: github.ref == 'refs/heads/main'
         run: docker push ghcr.io/${{ github.repository }}:latest
 
       - name: Test Docker image
