@@ -12,27 +12,28 @@ import { parse } from 'yaml'
 
 // Function to process schemas and resource types
 async function processResourcesAndSchemas(config, resourceTypes, schemas) {
-    // get schema and schema extensions for user
-    const userResourceType = resourceTypes.find(e => e.name === 'User');
-    const userSchemaId = userResourceType.schema;
-    const userSchemaExtensionsIds = userResourceType.schemaExtensions?.map(r => r.schema);
-
-    const userSchema = schemas.find(e => e.id === userSchemaId);
-    const userSchemaExtensions = schemas.filter(e => userSchemaExtensionsIds && userSchemaExtensionsIds.includes(e.id));
-
-    const groupResourceType = resourceTypes.find(e => e.name === 'Group');
-    const groupSchemaId = groupResourceType.schema;
-    const groupSchemaExtensionsIds = groupResourceType.schemaExtensions?.map(r => r.schema);
-
-    const groupSchema = schemas.find(e => e.id === groupSchemaId);
-    const groupSchemaExtensions = schemas.filter(e => groupSchemaExtensionsIds && groupSchemaExtensionsIds.includes(e.id));
-
+    // Only process user resource type and schema if enabled
     if (config?.users?.enabled) {
-        await runUserTests(userSchema, userSchemaExtensions, config);
+        const userResourceType = resourceTypes.find(e => e.name === 'User');
+        if (userResourceType) {
+            const userSchemaId = userResourceType.schema;
+            const userSchemaExtensionsIds = userResourceType.schemaExtensions?.map(r => r.schema);
+            const userSchema = schemas.find(e => e.id === userSchemaId);
+            const userSchemaExtensions = schemas.filter(e => userSchemaExtensionsIds && userSchemaExtensionsIds.includes(e.id));
+            await runUserTests(userSchema, userSchemaExtensions, config);
+        }
     }
 
+    // Only process group resource type and schema if enabled
     if (config?.groups?.enabled) {
-        await runGroupTests(groupSchema, groupSchemaExtensions, config);
+        const groupResourceType = resourceTypes.find(e => e.name === 'Group');
+        if (groupResourceType) {
+            const groupSchemaId = groupResourceType.schema;
+            const groupSchemaExtensionsIds = groupResourceType.schemaExtensions?.map(r => r.schema);
+            const groupSchema = schemas.find(e => e.id === groupSchemaId);
+            const groupSchemaExtensions = schemas.filter(e => groupSchemaExtensionsIds && groupSchemaExtensionsIds.includes(e.id));
+            await runGroupTests(groupSchema, groupSchemaExtensions, config);
+        }
     }
 }
 
