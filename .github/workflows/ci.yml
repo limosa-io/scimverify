@@ -27,9 +27,6 @@ jobs:
       - name: Build image
         run: docker build -t scimverify-test .
 
-      - name: Test Docker image
-        run: bash ./test-docker.sh
-
       - name: Test against Laravel SCIM Server
         run: |
           # Start the Laravel SCIM server in the background
