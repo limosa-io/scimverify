@@ -49,7 +49,7 @@ jobs:
           git_push_flags: '--force'
 
       - name: Build image
-    run: docker build -t scimverify-test .
+        run: docker build -t scimverify-test .
 
       - name: Authenticate to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
@@ -57,5 +57,5 @@ jobs:
       - name: Push image
         run: docker push ghcr.io/${{ github.repository }}:latest
 
-        - name: Test Docker image
-          run: bash ./test-docker.sh
+      - name: Test Docker image
+        run: bash ./test-docker.sh
