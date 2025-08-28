@@ -199,7 +199,6 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                     // find required attributes from the schema
 
                     const response = await testAxios.post('/Users', creation.request);
-                    console.log(response.data)
                     assert.strictEqual(response.status, 201, 'User creation should return 201 Created');
 
                     // Verify response matches the expected response format
