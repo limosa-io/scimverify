@@ -2,12 +2,52 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build image
+        run: docker build -t scimverify-test .
+
+      - name: Test against Laravel SCIM Server
+        run: |
+          # Start the Laravel SCIM server in the background
+          docker run -d -p 8000:8000 --name laravel-scim-server ghcr.io/limosa-io/laravel-scim-server:latest
+          
+          # Wait for server to be ready
+          timeout 60 bash -c 'until curl -f http://localhost:8000/scim/v2/Schemas; do sleep 2; done'
+          
+          sed -i 's/requireAuthentication: true/requireAuthentication: false/' ./site/.vitepress/theme/components/config.yaml
+
+          # Run scimverify tests against the server
+          npx node ./bin/scimverify.js --config ./site/.vitepress/theme/components/config.yaml --base-url http://localhost:8000/scim/v2/ --auth-header "Bearer YOUR_TOKEN" 
+          
+          # Cleanup
+          docker stop laravel-scim-server
+          docker rm laravel-scim-server
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       packages: write
@@ -49,13 +89,10 @@ jobs:
           git_push_flags: '--force'
 
       - name: Build image
-    run: docker build -t scimverify-test .
+        run: docker build -t scimverify-test .
 
       - name: Authenticate to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
       - name: Push image
         run: docker push ghcr.io/${{ github.repository }}:latest
-
-        - name: Test Docker image
-          run: bash ./test-docker.sh

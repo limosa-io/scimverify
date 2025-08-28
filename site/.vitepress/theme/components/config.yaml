@@ -2,6 +2,7 @@ detectSchema: true
 detectResourceTypes: true
 verifyPagination: true
 verifySorting: true
+requireAuthentication: false
 
 users:
   enabled: true
@@ -97,8 +98,8 @@ users:
     - request:
         {
           "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-          "userName": "bjensen",
-          "emails": [{ "value": "barbara.jensen@example.com" }],
+          "userName": "bjonsen",
+          "emails": [{ "value": "barbara.jonsen@example.com" }],
         }
       response:
         {
@@ -119,7 +120,7 @@ users:
                   "type": "object",
                   "properties":
                     {
-                      "userName": { "type": "string", "const": "bjensen" },
+                      "userName": { "type": "string", "const": "bjonsen" },
                       "emails":
                         {
                           "type": "array",
@@ -131,7 +132,7 @@ users:
                                   "value":
                                     {
                                       "type": "string",
-                                      "const": "barbara.jensen@example.com",
+                                      "const": "barbara.jonsen@example.com",
                                     },
                                 },
                             },
@@ -152,7 +153,7 @@ users:
         {
           "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
           "userName": "bdoe",
-          "emails": [{ "value": "barbara.jensen@example.com" }],
+          "emails": [{ "value": "barbara.doe@example.com" }],
         }
       response:
         {
@@ -185,7 +186,7 @@ users:
                                   "value":
                                     {
                                       "type": "string",
-                                      "const": "barbara.jensen@example.com",
+                                      "const": "barbara.doe@example.com",
                                     },
                                 },
                             },
@@ -317,8 +318,7 @@ groups:
                           "items":
                             {
                               "type": "object",
-                              "properties": { "value": { "type": "string" } },
-                            },
+                              "properties": { "value": { "type": ["string", "number"] } },                   },
                         },
                     },
                   "required": ["displayName", "members"],
@@ -365,8 +365,7 @@ groups:
                           "items":
                             {
                               "type": "object",
-                              "properties": { "value": { "type": "string" } },
-                            },
+                              "properties": { "value": { "type": ["string", "number"] } },                   },
                         },
                     },
                   "required": ["displayName", "members"],

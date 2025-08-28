@@ -1,6 +1,6 @@
 import test, { skip } from 'node:test';
 import assert from 'node:assert';
-import { getAxiosInstance, canonicalize } from './helpers.js';
+import { getAxiosInstance, canonicalize, getResourceAttributeValue } from './helpers.js';
 import Ajv from 'ajv';
 
 const sharedState = {};
@@ -119,9 +119,25 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                 assert.strictEqual(response.status, 200, 'Sort request should return 200 OK');
                 assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
                 const users = response.data.Resources;
-                for (let i = 1; i < users.length; i++) {
-                    assert.ok(users[i - 1].userName <= users[i].userName, 'Users should be sorted by userName');
+
+                // Build list of out-of-order username pairs for better diagnostics on failure
+                const userNames = users.map(u => getResourceAttributeValue(u, 'userName'));
+                const unsortedPairs = [];
+                for (let i = 1; i < userNames.length; i++) {
+                    if (userNames[i - 1] > userNames[i]) {
+                        unsortedPairs.push({ index: i - 1, a: userNames[i - 1], b: userNames[i] });
+                    }
                 }
+
+                if (unsortedPairs.length > 0) {
+                    t.diagnostic(
+                        `Unsorted userName pairs: ` +
+                        unsortedPairs
+                            .map(p => `(${p.index}->${p.index + 1}: "${p.a}" > "${p.b}")`)
+                            .join(', ')
+                    );
+                }
+                assert.strictEqual(unsortedPairs.length, 0, 'Users should be sorted by userName');
             });
         }
 
@@ -133,7 +149,8 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
             const users = response.data.Resources;
             users.forEach(user => {
-                assert.ok(user.hasOwnProperty('userName'), 'User should have userName attribute');
+                const value = getResourceAttributeValue(user, 'userName');
+                assert.ok(value !== undefined, 'User should have userName attribute');
             });
         });
 
@@ -146,13 +163,23 @@ function runTests(userSchema, userSchemaExtensions = [], configuration) {
                 return;
             }
 
+            // Normalize for servers that place core attributes under the main schema object
+            if (user.userName === undefined) {
+                const normalizedUserName = getResourceAttributeValue(user, 'userName');
+                if (normalizedUserName !== undefined) {
+                    user.userName = normalizedUserName;
+                }
+            }
+
+            const targetUserName = user.userName;
+
             const filter = `userName eq "${user.userName}"`;
             const response = await testAxios.get(`/Users?filter=${filter}`);
             assert.strictEqual(response.status, 200, 'Filtered users request should return 200 OK');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should use the correct SCIM list response schema');
             const users = response.data.Resources;
-            users.forEach(user => {
-                assert.strictEqual(user.userName, user.userName, 'User should have userName equal to "bjensen"');
+            users.forEach(u => {
+                assert.strictEqual(getResourceAttributeValue(u, 'userName'), targetUserName, 'User should have matching userName');
             });
         });
 

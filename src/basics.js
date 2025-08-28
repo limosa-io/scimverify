@@ -20,15 +20,17 @@ function runTests(config) {
             );
         });
 
-        test('Authentication should be required for /Users', async function (t) {
-            const axios = getAxiosInstance(config, t);
-            const response = await axios.get('/Users', {
-                headers: {
-                    'Authorization': null
-                }
+        if (config?.requireAuthentication !== false) {
+            test('Authentication should be required for /Users', async function (t) {
+                const axios = getAxiosInstance(config, t);
+                const response = await axios.get('/Users', {
+                    headers: {
+                        'Authorization': null
+                    }
+                });
+                assert.ok([401, 403].includes(response.status), 'Expected 401 Unauthorized or 403 Forbidden status');
             });
-            assert.ok([401, 403].includes(response.status), 'Expected 401 Unauthorized or 403 Forbidden status');
-        });
+        }
     });
 }
 
