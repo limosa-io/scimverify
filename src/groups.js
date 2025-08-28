@@ -174,9 +174,9 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
                 };
 
                 const response = await testAxios.post('/Groups', newGroup);
-                assert.strictEqual(response.status, '400', 'Creating an invalid group should return status code 400');
+                assert.strictEqual(response.status, 400, 'Creating an invalid group should return status code 400');
                 assert.strictEqual(response.data.scimType, "invalidSyntax", 'Error should have scimType set to invalidSyntax');
-                assert.strictEqual(response.data.status, '400', 'Error response status should match HTTP status code');
+                assert.strictEqual(response.data.status, 400, 'Error response status should match HTTP status code');
                 assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:Error', 'Error response should contain the correct error schema');
             });
         }
@@ -264,7 +264,12 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
                 });
                 assert.strictEqual(patchResponse.status, 200, 'PATCH /Groups/{id} should return status code 200 when assigning a user to a group');
                 assert.strictEqual(patchResponse.data.schemas[0], 'urn:ietf:params:scim:schemas:core:2.0:Group', 'Response should contain the correct schema');
-                assert.ok(patchResponse.data.members.some(member => member.value === user.id), 'User should be assigned to the group');
+                assert.ok(
+                    getResourceAttributeValue(patchResponse.data, 'members').some(
+                        member => String(member.value) === String(user.id)
+                    ),
+                    'User should be assigned to the group'
+                );
             });
         }
 

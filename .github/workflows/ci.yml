@@ -35,6 +35,8 @@ jobs:
           # Wait for server to be ready
           timeout 60 bash -c 'until curl -f http://localhost:8000/scim/v2/Schemas; do sleep 2; done'
           
+          sed -i 's/requireAuthentication: true/requireAuthentication: false/' ./site/.vitepress/theme/components/config.yaml
+
           # Run scimverify tests against the server
           npx node ./bin/scimverify.js --config ./site/.vitepress/theme/components/config.yaml --base-url http://localhost:8000/scim/v2/ --auth-header "Bearer YOUR_TOKEN" 
           

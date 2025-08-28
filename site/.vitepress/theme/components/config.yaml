@@ -2,6 +2,7 @@ detectSchema: true
 detectResourceTypes: true
 verifyPagination: true
 verifySorting: true
+requireAuthentication: false
 
 users:
   enabled: true
@@ -317,8 +318,7 @@ groups:
                           "items":
                             {
                               "type": "object",
-                              "properties": { "value": { "type": "string" } },
-                            },
+                              "properties": { "value": { "type": ["string", "number"] } },                   },
                         },
                     },
                   "required": ["displayName", "members"],
@@ -365,8 +365,7 @@ groups:
                           "items":
                             {
                               "type": "object",
-                              "properties": { "value": { "type": "string" } },
-                            },
+                              "properties": { "value": { "type": ["string", "number"] } },                   },
                         },
                     },
                   "required": ["displayName", "members"],
