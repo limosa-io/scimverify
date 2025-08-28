@@ -24,8 +24,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build image
-        run: docker build -t scimverify-test .
+      - name: Build Docker image
+        run: docker build -t ghcr.io/limosa-io/scimverify:latest .
 
       - name: Test against Laravel SCIM Server
         run: |
