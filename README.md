@@ -1,8 +1,14 @@
+[![CI](https://github.com/limosa-io/scimverify/actions/workflows/ci.yml/badge.svg)](https://github.com/limosa-io/scimverify/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/scimverify.svg)](https://www.npmjs.com/package/scimverify)
+[![npm](https://img.shields.io/npm/dm/scimverify.svg)](https://www.npmjs.com/package/scimverify)
+
 # SCIM Verify
 
 ![SCIM Verify](site/public/scimverify-ogimage.png)
 
 This tool is created to check the SCIM (System for Cross-domain Identity Management) conformance of your SCIM server.
+
+You can use SCIM Verify online at [https://verify.scim.dev/](https://verify.scim.dev/) or run it locally. A SCIM test server is available at [SCIM Playground](https://scim.dev).
 
 ## Usage
 
@@ -35,10 +41,10 @@ Note that other licensing options are available.
 
 For organizations requiring additional assistance, commercial support options are available. Please contact scim@a11n.nl for more details.
 
+## Resources
+
+- [SCIM Playground](https://scim.dev) — Try SCIM APIs interactively
+
 ## Contact
 
 For more information, please visit [verify.scim.dev](https://verify.scim.dev/) or contact us at scim@a11n.nl.
-
-## TODO:
-
-1. Generate example requests and response schemas based on Schema and Resource Types. Leverage AI??
