@@ -54,6 +54,7 @@ async function processQueue() {
         process.env.AUTH_HEADER = req.body.authHeader;
         process.env.CONFIG = JSON.stringify(req.body);
         process.env.HAR_VIA_DIAGNOSTIC = true;
+        process.env.SKIP_TLS_VERIFICATION = false;
 
         const responseStream = new Writable({
             write(chunk, encoding, callback) {

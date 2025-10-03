@@ -113,6 +113,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         {
             baseURL: process.env.BASE_URL,
             authHeader: process.env.AUTH_HEADER,
+            skipTlsVerification: !!process.env.SKIP_TLS_VERIFICATION,
             ...parse(process.env.CONFIG),
         }
     ).then((result) => {

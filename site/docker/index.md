@@ -15,6 +15,7 @@ Before running the command below, make sure you have a local `config.yaml` file 
 | `CONFIG_FILE`           |    No    | Path to YAML configuration file                                         |
 | `CONFIG`                |   No\*   | YAML configuration                                                      |
 | `HAR_FILE_NAME`         |    No    | Path to write HAR file output                                           |
+| `SKIP_TLS_VERIFICATION` |    No    | Set non-empty value when running a server with self-signed certificates |
 
 \* `CONFIG` is required when `CONFIG_FILE` is not set
 
