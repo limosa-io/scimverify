@@ -9,20 +9,23 @@ function runTests(configuration) {
             const response = await axios.get('/ResourceTypes');
             assert.strictEqual(response.status, 200, 'ResourceTypes endpoint should return status code 200');
             assert.strictEqual(response.data.schemas[0], 'urn:ietf:params:scim:api:messages:2.0:ListResponse', 'Response should have the correct ListResponse schema');
-            
+
             const resources = response.data.Resources;
             assert.ok(Array.isArray(resources), 'Resources should be an array');
-            
-            // Check for User and Group resource types
-            const userResourceType = resources.find(r => r.id === 'User');
-            const groupResourceType = resources.find(r => r.id === 'Group');
-            
-            assert.ok(userResourceType, 'User resource type should exist');
-            assert.ok(groupResourceType, 'Group resource type should exist');
-            
-            // Verify essential properties
-            assert.ok(userResourceType.schema, 'User resource type should have a schema');
-            assert.ok(groupResourceType.schema, 'Group resource type should have a schema');
+
+            if (configuration?.users?.enabled) {
+                // Check for User resource type and verify essential properties
+                const userResourceType = resources.find(r => r.id === 'User');
+                assert.ok(userResourceType, 'User resource type should exist');
+                assert.ok(userResourceType.schema, 'User resource type should have a schema');
+            }
+
+            if (configuration?.groups?.enabled) {
+                // Check for Group resource type and verify essential properties
+                const groupResourceType = resources.find(r => r.id === 'Group');
+                assert.ok(groupResourceType, 'Group resource type should exist');
+                assert.ok(groupResourceType.schema, 'Group resource type should have a schema');
+            }
         });
     });
 }
