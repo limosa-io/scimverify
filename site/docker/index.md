@@ -6,9 +6,21 @@ The Docker image is hosted on GitHub Container Registry and can be pulled using 
 
 Before running the command below, make sure you have a local `config.yaml` file and a proper `output` directory. Adjust the mount points accordingly, if necessary.
 
+## Environment variables
+
+| Variable                | Required | Description                                                             |
+| ----------------------- | :------: | ----------------------------------------------------------------------- |
+| `AUTH_HEADER`           |   Yes    | Authorization header                                                    |
+| `BASE_URL`              |   Yes    | Base URL of the SCIM server`                                            |
+| `CONFIG_FILE`           |    No    | Path to YAML configuration file                                         |
+| `CONFIG`                |   No\*   | YAML configuration                                                      |
+| `HAR_FILE_NAME`         |    No    | Path to write HAR file output                                           |
+
+\* `CONFIG` is required when `CONFIG_FILE` is not set
+
 ## Example command
 
-~~~.sh
+```sh
 docker run \
     -e CONFIG_FILE=/app/config.yaml \
     -e AUTH_HEADER="Bearer REPLACE_THIS" \
@@ -17,11 +29,11 @@ docker run \
     -v $(pwd)/site/.vitepress/theme/components/config.yaml:/app/config.yaml \
     -v $(pwd)/output/:/output \
     ghcr.io/limosa-io/scimverify
-~~~
+```
 
 ## Example configuration
 
-~~~.yaml
+```yaml
 detectSchema: true
 detectResourceTypes: true
 
@@ -446,4 +458,4 @@ groups:
         }
   delete_tests:
     - id: AUTO
-~~~
+```
