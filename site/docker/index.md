@@ -11,7 +11,7 @@ Before running the command below, make sure you have a local `config.yaml` file 
 | Variable                | Required | Description                                                             |
 | ----------------------- | :------: | ----------------------------------------------------------------------- |
 | `AUTH_HEADER`           |   Yes    | Authorization header                                                    |
-| `BASE_URL`              |   Yes    | Base URL of the SCIM server`                                            |
+| `BASE_URL`              |   Yes    | Base URL of the SCIM server                                             |
 | `CONFIG_FILE`           |    No    | Path to YAML configuration file                                         |
 | `CONFIG`                |   No\*   | YAML configuration                                                      |
 | `HAR_FILE_NAME`         |    No    | Path to write HAR file output                                           |
