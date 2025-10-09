@@ -1,4 +1,5 @@
 import axios from 'axios';
+import https from 'https';
 import fs from 'fs';
 
 let harEntries = [];
@@ -16,7 +17,7 @@ function createHarEntry(t, request, response) {
             cookies: [],
             headers: Object.entries(request.headers)
                 .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-                .map(([name, value]) => ({name, value})),
+                .map(([name, value]) => ({ name, value })),
             queryString: [],
             postData: request.data ? {
                 mimeType: request.headers['Content-Type'] || 'application/json',
@@ -32,7 +33,7 @@ function createHarEntry(t, request, response) {
             cookies: [],
             headers: Object.entries(response.headers)
                 .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-                .map(([name, value]) => ({name, value})),
+                .map(([name, value]) => ({ name, value })),
             content: {
                 size: -1,
                 mimeType: response.headers['content-type'] || 'application/json',
@@ -52,7 +53,7 @@ function createHarEntry(t, request, response) {
 }
 
 export function writeHarFile(testName) {
-    
+
     const har = {
         log: {
             version: '1.2',
@@ -64,7 +65,7 @@ export function writeHarFile(testName) {
             entries: harEntries
         }
     };
-    
+
     const harPath = testName;
     fs.writeFileSync(harPath, JSON.stringify(har, null, 2));
     harEntries = []; // Clear entries after writing
@@ -90,7 +91,8 @@ export function getAxiosInstance(config, testContext = null) {
         validateStatus: function (status) {
             // Return true for any status code (don't throw errors)
             return true;
-        }
+        },
+        ...(config.skipTlsVerification && { httpsAgent: new https.Agent({ rejectUnauthorized: false }) })
     });
 
     const t = testContext;
@@ -103,8 +105,8 @@ export function getAxiosInstance(config, testContext = null) {
     // Add response interceptor to log the raw HTTP response
     instance.interceptors.response.use(response => {
         const harEntry = createHarEntry(t, response.config, response);
-        
-        if(process.env.HAR_VIA_DIAGNOSTIC) {
+
+        if (process.env.HAR_VIA_DIAGNOSTIC) {
             t?.diagnostic(harEntry);
         }
 
@@ -114,8 +116,8 @@ export function getAxiosInstance(config, testContext = null) {
     }, error => {
         if (error.response) {
             const harEntry = createHarEntry(error.response.config, error.response);
-            
-            if(process.env.HAR_VIA_DIAGNOSTIC) {
+
+            if (process.env.HAR_VIA_DIAGNOSTIC) {
                 t?.diagnostic(harEntry);
             }
 
@@ -126,7 +128,7 @@ export function getAxiosInstance(config, testContext = null) {
     return instance;
 }
 
-export function canonicalize(resource, schema){
+export function canonicalize(resource, schema) {
     // Create a deep copy of the user object
     const canonicalizedResource = JSON.parse(JSON.stringify(resource));
     const schemas = canonicalizedResource.schemas || [];
@@ -140,14 +142,14 @@ export function canonicalize(resource, schema){
         if (!canonicalizedResource[coreSchema]) {
             canonicalizedResource[coreSchema] = {};
         }
-        
+
         // Move attributes that are not schemas, meta, id, or extension schemas to the core schema
         Object.keys(canonicalizedResource).forEach(key => {
             // Skip schemas, meta, id, and extension schemas (which start with urn: but aren't the core schema)
             if (key === 'schemas' || key === 'meta' || key === 'id' || key == 'externalId' || schemas.includes(key)) {
                 return;
             }
-            
+
             // Move the attribute to the core schema and delete from root
             canonicalizedResource[coreSchema][key] = canonicalizedResource[key];
             delete canonicalizedResource[key];

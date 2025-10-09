@@ -23,6 +23,7 @@ Options:
 - `-a, --auth-header <auth>` - Authorization header (required)
 - `-c, --config <path>` - Path to YAML configuration file (optional)
 - `-o, --har-file <path>` - Path to write HAR file output (optional)
+- `--skip-tls-verification` - Use when running a server with self-signed certificates (optional)
 - `-h, --help` - Show help message
 
 ## Features

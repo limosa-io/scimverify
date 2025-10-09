@@ -15,6 +15,7 @@ let configPath = null;
 let baseUrl = null;
 let authHeader = null;
 let harFileName = null;
+let skipTlsVerification = false;
 
 // Simple argument parser
 for (let i = 0; i < args.length; i++) {
@@ -27,6 +28,8 @@ for (let i = 0; i < args.length; i++) {
     authHeader = args[++i];
   } else if (arg === '--har-file' || arg === '-o') {
     harFileName = args[++i];
+  } else if (arg === '--skip-tls-check') {
+    skipTlsVerification = true;
   } else if (arg === '--help' || arg === '-h') {
     printHelp();
     process.exit(0);
@@ -44,6 +47,7 @@ Options:
   -b, --base-url <url>      Base URL of the SCIM server
   -a, --auth-header <auth>  Authorization header (e.g. "Bearer token")
   -o, --har-file <path>     Path to write HAR file output
+  --skip-tls-check          Use when running a server with self-signed certificates
   -h, --help                Show this help message
 
 Example:
@@ -85,6 +89,7 @@ async function main() {
     const result = await runAllTests({
       baseURL: baseUrl,
       authHeader: authHeader,
+      skipTlsVerification,
       ...config,
     });
 
