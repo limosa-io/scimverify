@@ -115,7 +115,7 @@ export function getAxiosInstance(config, testContext = null) {
         return response;
     }, error => {
         if (error.response) {
-            const harEntry = createHarEntry(error.response.config, error.response);
+            const harEntry = createHarEntry(t, error.response.config, error.response);
 
             if (process.env.HAR_VIA_DIAGNOSTIC) {
                 t?.diagnostic(harEntry);
