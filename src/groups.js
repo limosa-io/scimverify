@@ -7,6 +7,7 @@ import Ajv from 'ajv';
 dotenv.config();
 
 const sharedState = {};
+const ajv = new Ajv(); // Reuse Ajv instance for better performance
 
 function verifyGroup(group, schema, schemaExtensions = []) {
     // Ensure the group contains no other attributes then defined in the schema
@@ -23,12 +24,19 @@ function verifyGroup(group, schema, schemaExtensions = []) {
 }
 
 async function populateUserIds(request, configuration, t){
-    // request from JSON to string
+    // Check if replacement is needed before making API call
     const requestString = JSON.stringify(request);
-    // Get the user ID first
-    const userId = await lookupUserId(configuration, t);
+    if (!requestString.includes('AUTO')) {
+        return request;
+    }
+    
+    // Get the user ID (cached in sharedState if available)
+    if (!sharedState.userId) {
+        sharedState.userId = await lookupUserId(configuration, t);
+    }
+    
     // replace each occurrence of AUTO with the actual user ID
-    const replacedString = requestString.replace(/AUTO/g, userId);
+    const replacedString = requestString.replace(/AUTO/g, sharedState.userId);
     // return string to JSON
     return JSON.parse(replacedString);
 }
@@ -48,14 +56,6 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
             const displayNameAttribute = groupSchema.attributes.find(attr => attr.name === 'displayName');
             assert.ok(displayNameAttribute, 'displayName attribute should exist in groupSchema');
             assert.strictEqual(displayNameAttribute.required, true, 'displayName attribute should be marked as required');
-        });
-
-        // before all, ensure schema is set
-        test.beforeEach(() => {
-            if (!groupSchema) {
-                t.skip('Schema is not set');
-                return;
-            }
         });
 
         test('Retrieves a list of groups', async (t) => {
@@ -145,7 +145,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
         }
 
         if (configuration?.groups?.operations?.includes('POST')) {
-            for (const [index, creation] of (configuration.groups.post_tests || []).entries()) {
+            for (const [index, creation] of (configuration?.groups?.post_tests || []).entries()) {
                 test(`Creates a new group - Alternative ${index + 1}`, async (t) => {
                     const testAxios = getAxiosInstance(configuration, t);
 
@@ -156,7 +156,6 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
 
                     // Verify response matches the expected response format
                     if (creation.response) {
-                        const ajv = new Ajv();
                         const valid = ajv.validate(creation.response, canonicalize(response.data, groupSchema) );
                         assert.ok(valid, `Response doesn't match the expected schema: ${JSON.stringify(ajv.errors)}`);
                     }
@@ -182,7 +181,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
         }
 
         if (configuration?.groups?.operations?.includes('PUT')) {
-            for (const [index, update] of (configuration.groups.put_tests || []).entries()) {
+            for (const [index, update] of (configuration?.groups?.put_tests || []).entries()) {
                 test(`Updates a group using PUT - Alternative ${index + 1}`, async (t) => {
                     const testAxios = getAxiosInstance(configuration, t);
 
@@ -200,7 +199,6 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
 
                     // Verify response matches the expected response format
                     if (update.response) {
-                        const ajv = new Ajv();
                         const valid = ajv.validate(update.response, canonicalize(response.data, groupSchema));
                         assert.ok(valid, `Response doesn't match the expected schema: ${JSON.stringify(ajv.errors)}`);
                     }
@@ -209,7 +207,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
         }
 
         if (configuration?.groups?.operations?.includes('PATCH')) {
-            for (const [index, patch] of (configuration.groups.patch_tests || []).entries()) {
+            for (const [index, patch] of (configuration?.groups?.patch_tests || []).entries()) {
                 test(`Updates a group using PATCH - Alternative ${index + 1}`, async (t) => {
                     const testAxios = getAxiosInstance(configuration, t);
 
@@ -227,7 +225,6 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
 
                     // Verify response matches the expected response format
                     if (patch.response) {
-                        const ajv = new Ajv();
                         const valid = ajv.validate(patch.response, canonicalize(response.data, groupSchema));
                         assert.ok(valid, `Response doesn't match the expected schema: ${JSON.stringify(ajv.errors)}`);
                     }
@@ -274,7 +271,7 @@ function runTests(groupSchema, groupSchemaExtensions = [], configuration) {
         }
 
         if (configuration?.groups?.operations?.includes('DELETE')) {
-            for (const [index, deletion] of (configuration.groups.delete_tests || []).entries()) {
+            for (const [index, deletion] of (configuration?.groups?.delete_tests || []).entries()) {
                 await test(`Deletes a group - Alternative ${index + 1}`, async (t) => {
                     const testAxios = getAxiosInstance(configuration, t);
 
