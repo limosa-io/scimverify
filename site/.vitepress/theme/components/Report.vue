@@ -532,6 +532,24 @@ export default {
               }
               this.isRunningTests = false;
               this.output += 'Test run completed.\n';
+              
+              // Track test completion with results
+              if (window.umami) {
+                const totalTests = this.testFiles.reduce((sum, file) => 
+                  sum + file.results.filter(r => ['test:pass', 'test:fail'].includes(r.getLatest()?.type)).length, 0);
+                const passedTests = this.testFiles.reduce((sum, file) => 
+                  sum + file.results.filter(r => r.getLatest()?.type === 'test:pass').length, 0);
+                const failedTests = this.testFiles.reduce((sum, file) => 
+                  sum + file.results.filter(r => r.getLatest()?.type === 'test:fail').length, 0);
+                
+                window.umami.track('tests-completed', {
+                  totalTests,
+                  passedTests,
+                  failedTests,
+                  authScheme: this.authScheme
+                });
+              }
+              
               return;
             }
 
@@ -662,8 +680,16 @@ export default {
 
     runTests() {
       this.output = ''; // Clear previous output
-      this.showAdvanced = false;
 
+      // Track test run event
+      if (window.umami) {
+        window.umami.track('run-tests', {
+          authScheme: this.authScheme,
+          hasAdvancedConfig: this.showAdvanced
+        });
+      }
+
+      this.showAdvanced = false;
       this.startTestStream(); // Start HTTP streaming request instead of socket
 
       // Reset Turnstile after submitting
