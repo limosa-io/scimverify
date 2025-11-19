@@ -1532,4 +1532,238 @@ select {
     background-color: rgba(26, 115, 232, 0.08);
   }
 }
+
+/* Dark mode support */
+:global(.dark) {
+  .report-container {
+    color: #e8eaed;
+  }
+
+  .form-group {
+    background-color: #202124;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  }
+
+  label {
+    color: #e8eaed;
+  }
+
+  input[type="password"],
+  input[type="url"],
+  input[type="text"],
+  textarea,
+  select {
+    background-color: #303134;
+    border-color: #5f6368;
+    color: #e8eaed;
+
+    &:focus {
+      border-color: #8ab4f8;
+      box-shadow: 0 1px 2px rgba(138, 180, 248, 0.1);
+    }
+
+    &::placeholder {
+      color: #9aa0a6;
+    }
+
+    &:-webkit-autofill,
+    &:-webkit-autofill:hover, 
+    &:-webkit-autofill:focus, 
+    &:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 30px #303134 inset !important;
+      -webkit-text-fill-color: #e8eaed !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+  }
+
+  .input-hint, .editor-hint {
+    color: #9aa0a6;
+  }
+
+  .tabs {
+    background-color: #202124;
+    border-bottom-color: #5f6368;
+  }
+
+  .tab {
+    color: #9aa0a6;
+
+    &:hover {
+      background-color: rgba(138, 180, 248, 0.04);
+      color: #8ab4f8;
+    }
+
+    &.active {
+      border-bottom-color: #8ab4f8;
+      color: #8ab4f8;
+    }
+  }
+
+  .tab-content {
+    background-color: #303134;
+    color: #e8eaed;
+  }
+
+  .option label {
+    color: #e8eaed;
+  }
+
+  .option input[type="checkbox"] {
+    border-color: #9aa0a6;
+    background-color: #303134;
+
+    &:checked {
+      background-color: #8ab4f8;
+      border-color: #8ab4f8;
+
+      &::after {
+        border-color: #202124;
+      }
+    }
+  }
+
+  button {
+    background-color: #8ab4f8;
+    color: #202124;
+
+    &:hover {
+      background-color: #93bbf9;
+    }
+
+    &:active {
+      background-color: #76a7fa;
+    }
+  }
+
+  .advanced-toggle {
+    color: #8ab4f8;
+    border-color: #8ab4f8;
+
+    &:hover {
+      background-color: rgba(138, 180, 248, 0.04);
+    }
+
+    &:active {
+      background-color: rgba(138, 180, 248, 0.08);
+    }
+  }
+
+  .test-output {
+    border-color: #5f6368;
+    
+    h2 {
+      color: #e8eaed;
+      border-bottom-color: #5f6368;
+    }
+  }
+
+  .file-item {
+    border-bottom-color: #5f6368;
+  }
+
+  .result-item {
+    border-color: #3c4043;
+
+    p {
+      background-color: #303134;
+      border-top-color: #3c4043;
+      color: #e8eaed;
+    }
+  }
+
+  summary {
+    background-color: #303134;
+    color: #e8eaed;
+
+    span {
+      color: #9aa0a6;
+      background-color: #3c4043;
+    }
+
+    &:hover {
+      background-color: #3c4043;
+    }
+
+    &.no-details:hover {
+      background-color: #303134;
+    }
+
+    &.test\:pass {
+      background-color: rgba(34, 197, 94, 0.1);
+      &:hover { background-color: rgba(34, 197, 94, 0.15); }
+    }
+
+    &.test\:fail {
+      background-color: rgba(239, 68, 68, 0.1);
+      &:hover { background-color: rgba(239, 68, 68, 0.15); }
+    }
+
+    &.test\:skip {
+      background-color: rgba(245, 158, 11, 0.1);
+      &:hover { background-color: rgba(245, 158, 11, 0.15); }
+    }
+  }
+
+  pre {
+    background-color: #202124;
+    border-color: #3c4043;
+    color: #e8eaed;
+  }
+
+  .request-line {
+    color: #e8eaed;
+    strong { color: #8ab4f8; }
+  }
+
+  .response-headers, .request-headers {
+    color: #9aa0a6;
+    strong { color: #bdc1c6; }
+  }
+
+  .diagnostic-tabs {
+    border-color: #5f6368;
+    
+    .tabs {
+      background-color: #202124;
+      border-bottom-color: #5f6368;
+    }
+  }
+
+  .yaml-editor {
+    border-color: #5f6368;
+  }
+
+  .running-tests-message {
+    background-color: #303134;
+    color: #e8eaed;
+    border-color: #5f6368;
+  }
+
+  .download-button {
+    color: #8ab4f8;
+    border-color: #8ab4f8;
+
+    &:hover {
+      background-color: rgba(138, 180, 248, 0.04);
+    }
+  }
+  
+  .option a {
+    color: #8ab4f8;
+  }
+
+  .turnstile-error, .yaml-error {
+    color: #f28b82;
+  }
+
+  .yaml-error {
+    background-color: rgba(242, 139, 130, 0.1);
+    border-left-color: #f28b82;
+  }
+
+  .spinner {
+    border-color: #5f6368;
+    border-top-color: #8ab4f8;
+  }
+}
 </style>
