@@ -1637,14 +1637,15 @@ select {
 
   .advanced-toggle {
     color: #8ab4f8;
-    border-color: #8ab4f8;
+    border-color: rgba(138, 180, 248, 0.5);
 
     &:hover {
-      background-color: rgba(138, 180, 248, 0.04);
+      border-color: #8ab4f8;
+      background-color: rgba(138, 180, 248, 0.08);
     }
 
     &:active {
-      background-color: rgba(138, 180, 248, 0.08);
+      background-color: rgba(138, 180, 248, 0.12);
     }
   }
 
@@ -1741,10 +1742,15 @@ select {
 
   .download-button {
     color: #8ab4f8;
-    border-color: #8ab4f8;
+    border-color: rgba(138, 180, 248, 0.5);
 
     &:hover {
-      background-color: rgba(138, 180, 248, 0.04);
+      border-color: #8ab4f8;
+      background-color: rgba(138, 180, 248, 0.08);
+    }
+
+    &:active {
+      background-color: rgba(138, 180, 248, 0.12);
     }
   }
   
