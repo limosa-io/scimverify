@@ -20,7 +20,8 @@
           <select id="auth-scheme" v-model="authScheme" required>
             <option value="basic">Basic</option>
             <option value="bearer">Bearer</option>
-            <option value="custom">Custom</option>
+            <option value="custom">Custom Authorization Header</option>
+            <option value="custom-header">Custom Header</option>
           </select>
 
           <div v-if="authScheme === 'basic'" style="margin-top: 10px;">
@@ -42,6 +43,17 @@
             <input type="text" id="custom-auth" v-model="customAuth" required
               placeholder="Enter the complete Authorization header value">
             <div class="input-hint">Example: Basic dXNlcm5hbWU6cGFzc3dvcmQ=</div>
+          </div>
+
+          <div v-if="authScheme === 'custom-header'" style="margin-top: 10px;">
+            <label for="custom-header-key">Header Name:</label>
+            <input type="text" id="custom-header-key" v-model="customHeader.key" required
+              placeholder="Enter header name (e.g. X-auth)">
+
+            <label for="custom-header-value" style="margin-top: 10px;">Header Value:</label>
+            <input type="text" id="custom-header-value" v-model="customHeader.value" required
+              placeholder="Enter header value">
+            <div class="input-hint">Example: X-auth / xyz</div>
           </div>
 
           <!-- Turnstile widget container -->
@@ -256,6 +268,10 @@ export default {
         password: ''
       },
       customAuth: '',
+      customHeader: {
+        key: '',
+        value: ''
+      },
       config: '',
       output: '',
       abortController: null, // For aborting fetch requests
@@ -475,6 +491,7 @@ export default {
 
       // Format authentication based on the selected scheme
       let authHeader = '';
+      let customHeader = null;
 
       if (this.authScheme === 'basic') {
         // Create Base64 encoded basic auth
@@ -484,11 +501,17 @@ export default {
         authHeader = `Bearer ${this.bearerToken}`;
       } else if (this.authScheme === 'custom') {
         authHeader = this.customAuth;
+      } else if (this.authScheme === 'custom-header') {
+        customHeader = {
+          key: this.customHeader.key,
+          value: this.customHeader.value
+        };
       }
 
       const configObject = {
         url: this.url,
         authHeader: authHeader,
+        customHeader,
         ...this.model,
         turnstileToken: this.turnstileToken
       };
@@ -1636,12 +1659,13 @@ select {
   }
 
   .advanced-toggle {
+    background-color: transparent;
     color: #8ab4f8;
     border-color: rgba(138, 180, 248, 0.5);
 
     &:hover {
-      border-color: #8ab4f8;
       background-color: rgba(138, 180, 248, 0.08);
+      border-color: #8ab4f8;
     }
 
     &:active {

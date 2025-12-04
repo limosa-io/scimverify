@@ -52,6 +52,8 @@ async function processQueue() {
         
         process.env.BASE_URL = req.body.url;
         process.env.AUTH_HEADER = req.body.authHeader;
+        process.env.CUSTOM_HEADER_KEY = req.body.customHeader?.key || '';
+        process.env.CUSTOM_HEADER_VALUE = req.body.customHeader?.value || '';
         process.env.CONFIG = JSON.stringify(req.body);
         process.env.HAR_VIA_DIAGNOSTIC = true;
         process.env.SKIP_TLS_VERIFICATION = '';
@@ -77,6 +79,8 @@ async function processQueue() {
             res.end();
             process.env.BASE_URL = '';
             process.env.AUTH_HEADER = '';
+            process.env.CUSTOM_HEADER_KEY = '';
+            process.env.CUSTOM_HEADER_VALUE = '';
             process.env.CONFIG = '';
             isProcessing = false; // Only set to false after test run completes
             processQueue(); // Process next request if any
@@ -96,6 +100,45 @@ async function processQueue() {
 
 // HTTP endpoint for running tests with streaming response
 app.post('/run-tests', async (req, res) => {
+    // Basic validation/sanitization to avoid malformed URLs/headers
+    const errors = [];
+    const { url, authHeader, customHeader } = req.body ?? {};
+
+    try {
+        const parsedUrl = new URL(url);
+        const allowedProtocols = ['http:', 'https:'];
+        if (!allowedProtocols.includes(parsedUrl.protocol)) {
+            errors.push('URL must use http or https');
+        }
+        if (!parsedUrl.hostname) {
+            errors.push('URL must include a hostname');
+        }
+    } catch (e) {
+        errors.push('Invalid URL format');
+    }
+
+    const hasNewlines = (value) => typeof value === 'string' && /[\r\n]/.test(value);
+    const isValidHeaderName = (name) => typeof name === 'string' && /^[A-Za-z0-9-]+$/.test(name);
+
+    if (authHeader) {
+        if (hasNewlines(authHeader)) {
+            errors.push('Authorization header contains invalid characters');
+        }
+    }
+
+    if (customHeader?.key || customHeader?.value) {
+        if (!isValidHeaderName(customHeader.key)) {
+            errors.push('Custom header name must be alphanumeric or hyphenated');
+        }
+        if (hasNewlines(customHeader.value)) {
+            errors.push('Custom header value contains invalid characters');
+        }
+    }
+
+    if (errors.length > 0) {
+        return res.status(400).json({ error: errors.join('; ') });
+    }
+
     if (process.env.TURNSTILE_ENABLED === 'true') {
         const token = req.headers['cf-challenge-token'];
         const remoteip = req.headers['cf-connecting-ip'];

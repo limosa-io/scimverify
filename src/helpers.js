@@ -82,12 +82,21 @@ export function clearHarEntries() {
  * @returns 
  */
 export function getAxiosInstance(config, testContext = null) {
+    const headers = {
+        'User-Agent': 'verify.scim.dev'
+    };
+
+    if (config?.authHeader) {
+        headers['Authorization'] = `${config.authHeader}`;
+    }
+
+    if (config?.customHeader?.key && config?.customHeader?.value) {
+        headers[config.customHeader.key] = config.customHeader.value;
+    }
+
     const instance = axios.create({
         baseURL: config.baseURL,
-        headers: {
-            'Authorization': `${config.authHeader}`,
-            'User-Agent': 'verify.scim.dev'
-        },
+        headers,
         validateStatus: function (status) {
             // Return true for any status code (don't throw errors)
             return true;

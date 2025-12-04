@@ -91,8 +91,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         process.exit(1);
     }
 
+    let parsedConfig;
     try {
-        parse(process.env.CONFIG);
+        parsedConfig = parse(process.env.CONFIG);
     } catch (error) {
         console.error('Invalid YAML configuration provided:', error.message);
         process.exit(1);
@@ -103,8 +104,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         console.error('Environment variable BASE_URL is required');
         process.exit(1);
     }
-    if (!process.env.AUTH_HEADER) {
-        console.error('Environment variable AUTH_HEADER is required');
+
+    const hasAuthHeader = !!process.env.AUTH_HEADER;
+    const hasCustomHeader = parsedConfig?.customHeader?.key && parsedConfig?.customHeader?.value;
+    if (!hasAuthHeader && !hasCustomHeader) {
+        console.error('An Authorization header or custom header is required');
         process.exit(1);
     }
 
@@ -114,7 +118,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             baseURL: process.env.BASE_URL,
             authHeader: process.env.AUTH_HEADER,
             skipTlsVerification: !!process.env.SKIP_TLS_VERIFICATION,
-            ...parse(process.env.CONFIG),
+            ...parsedConfig,
         }
     ).then((result) => {
         if (!result.success) {
