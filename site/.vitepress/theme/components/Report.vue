@@ -11,6 +11,15 @@
             implementation complies with the specifications.
           </p>
 
+          <div class="service-moved-notice" role="status">
+            <strong>verify.scim.dev is no longer functioning.</strong>
+            <span>
+              SCIM Verify has moved to
+              <a href="https://scim.dev/verify/">https://scim.dev/verify/</a>.
+              Use the new location to run verification tests.
+            </span>
+          </div>
+
           <label for="url">SCIM Base URL:</label>
           <input type="url" id="url" v-model="url" required placeholder="Enter the SCIM Base URL">
           <div class="input-hint">Example: https://api.scim.dev/scim/v2</div>
@@ -71,7 +80,13 @@
           </div>
 
           <!-- Run Tests Button -->
-          <button type="submit" :disabled="isRunningTests" class="run-button" :class="{ 'running': isRunningTests }">
+          <button
+            type="submit"
+            :disabled="serviceMoved || isRunningTests"
+            class="run-button"
+            :class="{ 'running': isRunningTests }"
+            title="SCIM Verify has moved to https://scim.dev/verify/"
+          >
             <span v-if="!isRunningTests">Run Tests</span>
             <span v-else>Running Tests <span class="dots-loading"></span></span>
           </button>
@@ -293,6 +308,7 @@ export default {
       turnstileError: false,
       turnstileWidgetId: null,
 
+      serviceMoved: true,
       isRunningTests: false, // Track if tests are currently running
       harMessages: [], // Add this to store HAR messages
     };
@@ -471,6 +487,10 @@ export default {
 
     // Validate Turnstile before running tests
     validateAndRunTests() {
+      if (this.serviceMoved) {
+        return;
+      }
+
       if (!this.turnstileToken) {
         this.turnstileError = true;
         return;
@@ -856,6 +876,26 @@ textarea {
   }
 }
 
+.service-moved-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid #fbbc04;
+  border-left: 4px solid #f29900;
+  border-radius: 6px;
+  background-color: #fff8e1;
+  color: #3c4043;
+  font-size: 14px;
+  line-height: 1.45;
+
+  a {
+    color: #174ea6;
+    font-weight: 500;
+  }
+}
+
 /* Tabs styling - Chrome style */
 .tabs {
   display: flex;
@@ -1034,6 +1074,14 @@ button {
   &:active {
     background-color: #185abc;
     box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  }
+
+  &:disabled {
+    background-color: #9aa0a6;
+    color: #ffffff;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 1;
   }
 }
 
