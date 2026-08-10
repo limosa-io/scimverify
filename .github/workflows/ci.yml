@@ -81,21 +81,34 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 
-      - name: Push to dokku
-        uses: dokku/github-action@master
-        with:
-          git_remote_url: "ssh://dokku@51.15.42.142:22/verify"
-          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          git_push_flags: '--force'
-          branch: 'main'
-
       - name: Build image
-        run: docker build -t ghcr.io/limosa-io/scimverify:latest .
+        run: |
+          docker build \
+            -t ghcr.io/limosa-io/scimverify:latest \
+            -t rg.nl-ams.scw.cloud/scimverify/verify:latest \
+            .
+
       - name: Authenticate to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
-      - name: Push image
+      - name: Push image to GHCR
         run: docker push ghcr.io/${{ github.repository }}:latest
+
+      - name: Install Scaleway CLI
+        run: curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
+
+      - name: Authenticate to Scaleway Container Registry
+        run: echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.nl-ams.scw.cloud -u nologin --password-stdin
+
+      - name: Push image to Scaleway Container Registry
+        run: docker push rg.nl-ams.scw.cloud/scimverify/verify:latest
+
+      - name: Deploy to Scaleway Serverless Container
+        run: scw container container redeploy ${{ secrets.SCW_CONTAINER_ID }} region=nl-ams -w
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
 
   release:
     name: Release
